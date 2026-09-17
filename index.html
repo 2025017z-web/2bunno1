@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Tone.js for Sound Effects -->
+    <!-- Tone.js for Sound Effects and Adaptive Synthesizer BGM -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@300;500;700&display=swap" rel="stylesheet">
@@ -35,6 +35,9 @@
         .glow-gold {
             text-shadow: 0 0 12px rgba(234, 179, 8, 0.9), 0 0 25px rgba(234, 179, 8, 0.6);
         }
+        .glow-purple {
+            text-shadow: 0 0 12px rgba(168, 85, 247, 0.9), 0 0 25px rgba(168, 85, 247, 0.6);
+        }
         .box-glow-blue {
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(59, 130, 246, 0.3);
         }
@@ -43,18 +46,24 @@
         }
         /* Glassmorphism */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
         }
-        /* Pulse Animation */
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.85; transform: scale(1.02); }
+        /* Custom Scrollbar for Ranking */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
-        .animate-pulse-slow {
-            animation: pulse-slow 3s infinite ease-in-out;
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.8);
         }
     </style>
 </head>
@@ -63,39 +72,57 @@
     <!-- 3D Canvas Container -->
     <div id="canvas-container" class="absolute inset-0 z-0"></div>
 
-    <!-- HUD Header: Title & Sound Toggle -->
-    <div class="absolute top-0 left-0 right-0 z-10 p-4 md:p-6 flex justify-between items-center pointer-events-none">
-        <!-- Title & Stage Status -->
-        <div class="pointer-events-auto flex items-center gap-3">
-            <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3">
-                <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
+    <!-- HUD Header: Title, Timer & Sound Toggle -->
+    <div class="absolute top-0 left-0 right-0 z-10 p-3 md:p-6 flex justify-between items-center pointer-events-none">
+        <!-- Stage Title -->
+        <div class="pointer-events-auto flex items-center gap-2 md:gap-3">
+            <div class="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-2xl flex items-center gap-2.5">
+                <span id="stage-pulse-dot" class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-cyan-400 animate-ping"></span>
                 <span id="stage-title-hud" class="font-orbitron text-xs md:text-sm font-bold tracking-widest text-cyan-300 uppercase">
                     STAGE 1 - 青と赤の二分決断
                 </span>
             </div>
         </div>
 
-        <!-- Mute/Sound Toggle -->
-        <button id="sound-btn" class="pointer-events-auto glass-panel p-3 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center">
-            <svg id="sound-icon-on" class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-            </svg>
-            <svg id="sound-icon-off" class="w-5 h-5 text-gray-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"/>
-                <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </button>
+        <!-- Play Time & Sound Toggle -->
+        <div class="pointer-events-auto flex items-center gap-2">
+            <!-- Timer Box -->
+            <div class="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-2xl flex items-center gap-2 font-mono text-xs md:text-sm">
+                <svg class="w-4 h-4 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-gray-400 hidden md:inline">TIME:</span>
+                <span id="hud-timer-val" class="font-bold text-yellow-300 font-orbitron">00:00.0</span>
+            </div>
+
+            <!-- Sound Switch -->
+            <button id="sound-btn" class="glass-panel p-2.5 md:p-3 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center">
+                <svg id="sound-icon-on" class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <svg id="sound-icon-off" class="w-5 h-5 text-gray-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"/>
+                    <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <!-- Top Score Info Bar -->
     <div class="absolute top-16 md:top-20 left-1/2 -translate-x-1/2 z-10 w-11/12 max-w-md pointer-events-none">
-        <div class="flex justify-between items-center glass-panel px-5 py-2 rounded-full text-xs font-mono">
+        <div class="flex justify-between items-center glass-panel px-5 py-2 rounded-full text-xs font-mono shadow-xl">
             <div>
-                <span class="text-gray-400">連続突破数: </span>
+                <span class="text-gray-400">連続突破: </span>
                 <span id="current-streak-val" class="text-cyan-300 font-bold font-orbitron text-sm">0 回</span>
             </div>
+            <div class="flex items-center gap-1">
+                <span id="bgm-level-badge" class="px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-[10px] font-bold text-white uppercase tracking-wider animate-pulse">
+                    BGM LV.1
+                </span>
+            </div>
             <div>
-                <span class="text-gray-400">最高記録: </span>
+                <span class="text-gray-400">自己最高: </span>
                 <span id="best-streak-val" class="text-yellow-400 font-bold font-orbitron text-sm">0 回</span>
             </div>
         </div>
@@ -121,238 +148,491 @@
 
     <!-- Bottom HUD: Probability Tracker -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-11/12 max-w-lg pointer-events-none">
-        <div class="glass-panel rounded-3xl p-4 md:p-5 text-center shadow-2xl border border-white/10 relative overflow-hidden">
-            <!-- Ambient Background Glow -->
+        <div class="glass-panel rounded-3xl p-3.5 md:p-5 text-center shadow-2xl border border-white/10 relative overflow-hidden">
             <div id="hud-glow-bg" class="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-xl transition-all duration-700"></div>
 
             <div class="relative z-10">
-                <div class="text-xs uppercase tracking-widest text-gray-400 font-medium mb-1">現在の到達確率</div>
+                <div class="text-[10px] md:text-xs uppercase tracking-widest text-gray-400 font-medium mb-0.5">現在の生存到達確率</div>
                 
                 <!-- Main Probability Value Display -->
                 <div class="flex items-center justify-center gap-2">
-                    <span class="text-sm text-cyan-400 font-orbitron">1 /</span>
-                    <span id="prob-denominator" class="text-3xl md:text-5xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-teal-200 to-white glow-blue">
+                    <span class="text-sm md:text-base text-cyan-400 font-orbitron">1 /</span>
+                    <span id="prob-denominator" class="text-2xl md:text-4xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-teal-200 to-white glow-blue">
                         2
                     </span>
                 </div>
 
                 <!-- Detail Percent Info -->
-                <div class="mt-2 flex items-center justify-between text-xs font-mono text-gray-300 px-2 pt-2 border-t border-white/10">
+                <div class="mt-2 flex items-center justify-between text-[11px] font-mono text-gray-300 px-2 pt-1.5 border-t border-white/10">
                     <div>
-                        <span class="text-gray-500">パーセンテージ:</span>
+                        <span class="text-gray-500">確立:</span>
                         <span id="prob-percent" class="text-cyan-300 font-bold">50.000%</span>
                     </div>
                     <div>
-                        <span class="text-gray-500">モード:</span>
-                        <span class="text-purple-400 font-bold">無限迷宮</span>
+                        <span class="text-gray-500">ロケーション:</span>
+                        <span id="hud-location-name" class="text-purple-300 font-bold">サイバー空間</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Start / Result Overlay Modal -->
+    <!-- Start / Result / Ranking Overlay Modal -->
     <div id="modal-overlay" class="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-500">
-        <div id="modal-card" class="glass-panel max-w-md w-full rounded-3xl p-6 md:p-8 text-center relative border border-white/20 shadow-2xl transform transition-all duration-500 scale-100">
+        <div id="modal-card" class="glass-panel max-w-lg w-full rounded-3xl p-5 md:p-7 text-center relative border border-white/20 shadow-2xl transform transition-all duration-500 scale-100 max-h-[92vh] overflow-y-auto">
             
-            <!-- Dynamic Icon Header -->
-            <div id="modal-icon-container" class="w-20 h-20 mx-auto mb-4 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center animate-pulse-slow">
-                <svg id="modal-icon-start" class="w-10 h-10 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                <svg id="modal-icon-fail" class="w-10 h-10 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
+            <!-- Modal Tab Controls (Game / Ranking) -->
+            <div class="flex justify-center gap-2 mb-4 p-1 bg-white/5 rounded-2xl border border-white/10">
+                <button id="tab-btn-game" class="flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">
+                    GAME
+                </button>
+                <button id="tab-btn-ranking" class="flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all text-gray-400 hover:text-white">
+                    🏆 ONLINE RANKING
+                </button>
             </div>
 
-            <!-- Modal Title -->
-            <h1 id="modal-title" class="text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300">
-                確率の迷宮
-            </h1>
+            <!-- GAME VIEW TAB -->
+            <div id="tab-content-game">
+                <!-- Dynamic Icon Header -->
+                <div id="modal-icon-container" class="w-16 h-16 md:w-20 md:h-20 mx-auto mb-3 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center">
+                    <svg id="modal-icon-start" class="w-8 h-8 md:w-10 md:h-10 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <svg id="modal-icon-fail" class="w-8 h-8 md:w-10 md:h-10 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
 
-            <!-- Subtitle Description -->
-            <p id="modal-desc" class="text-gray-300 text-sm md:text-base leading-relaxed mb-6 font-light">
-                2分の1の運命選択を当て続けろ！<br>
-                どこまで連続で正解できるか限界に挑戦。<br>
-                迷宮を進むたびに、奇妙な世界があなたを待つ。
-            </p>
+                <!-- Modal Title -->
+                <h1 id="modal-title" class="text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300">
+                    確率の迷宮
+                </h1>
 
-            <!-- Stats Box -->
-            <div id="modal-stats" class="hidden mb-6 p-4 rounded-2xl bg-white/5 border border-white/10 text-left text-xs font-mono space-y-2">
-                <div class="flex justify-between">
-                    <span class="text-gray-400">今回連続成功:</span>
-                    <span id="stat-stage" class="text-cyan-300 font-bold">0 回</span>
+                <!-- Subtitle Description -->
+                <p id="modal-desc" class="text-gray-300 text-xs md:text-sm leading-relaxed mb-4 font-light">
+                    1/2の運命選択を当て続けろ！<br>
+                    連続成功で<b>テンポUP＆トランスBGMが進化！</b><br>
+                    街・砂漠・平原・深海...未知のロケーションを駆け抜けろ！
+                </p>
+
+                <!-- Stats Box -->
+                <div id="modal-stats" class="hidden mb-4 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-left text-xs font-mono space-y-1.5">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">連続成功:</span>
+                        <span id="stat-stage" class="text-cyan-300 font-bold">0 回</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">生存確率:</span>
+                        <span id="stat-prob" class="text-yellow-300 font-bold">1 / 1</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">プレイ時間:</span>
+                        <span id="stat-time" class="text-emerald-300 font-bold font-orbitron">00:00.0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">死因:</span>
+                        <span id="stat-cause" class="text-red-400 font-bold">崖下へ落下</span>
+                    </div>
+                    <div class="flex justify-between border-t border-white/10 pt-1.5">
+                        <span class="text-gray-400">自己ベスト:</span>
+                        <span id="stat-best" class="text-yellow-400 font-bold">0 回</span>
+                    </div>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-400">突破した確率:</span>
-                    <span id="stat-prob" class="text-yellow-300 font-bold">1 / 1</span>
+
+                <!-- Player Name Input for Online Ranking -->
+                <div class="mb-4 text-left">
+                    <label class="block text-[11px] text-gray-400 font-mono mb-1">プレイヤー名 (オンラインランキング表示用):</label>
+                    <input type="text" id="player-name-input" maxlength="12" placeholder="名無し探索者" class="w-full bg-slate-900/80 border border-white/20 rounded-xl px-3 py-2 text-sm text-cyan-300 font-bold focus:outline-none focus:border-cyan-400">
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-400">死因:</span>
-                    <span id="stat-cause" class="text-red-400 font-bold">崖下へ落下</span>
-                </div>
-                <div class="flex justify-between border-t border-white/10 pt-2">
-                    <span class="text-gray-400">最高記録:</span>
-                    <span id="stat-best" class="text-emerald-400 font-bold">0 回</span>
-                </div>
+
+                <!-- Action Button -->
+                <button id="modal-action-btn" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 font-orbitron font-bold text-base md:text-lg tracking-wider text-white shadow-lg shadow-cyan-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-98">
+                    CHALLENGE START
+                </button>
             </div>
 
-            <!-- Action Button -->
-            <button id="modal-action-btn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 font-orbitron font-bold text-lg tracking-wider text-white shadow-lg shadow-cyan-500/30 transition-all duration-300 transform hover:scale-[1.02] active:scale-98">
-                CHALLENGE START
-            </button>
+            <!-- RANKING TAB VIEW -->
+            <div id="tab-content-ranking" class="hidden text-left">
+                <h2 class="text-lg font-bold font-orbitron text-cyan-300 mb-2 flex items-center gap-2">
+                    <span>🏆 全世界・最高突破数ランキング</span>
+                </h2>
+                <p class="text-xs text-gray-400 mb-3">確率の限界を超えた猛者たちの記録。</p>
+
+                <div id="ranking-list-container" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    <div class="text-center py-8 text-gray-500 text-xs animate-pulse">ランキング読み込み中...</div>
+                </div>
+
+                <button id="refresh-ranking-btn" class="mt-4 w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-cyan-300 transition-all">
+                    🔄 ランキング更新
+                </button>
+            </div>
+
         </div>
     </div>
 
+    <!-- Firebase System Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Setup with Strict Guidelines
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'probability-warp-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : { apiKey: "demo", authDomain: "demo.firebaseapp.com", projectId: "demo" };
+
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth().catch(err => console.log("Firebase auth fallback:", err));
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    fetchOnlineRankings();
+                }
+            });
+        } catch (e) {
+            console.warn("Firebase not fully configured in offline environment:", e);
+        }
+
+        // Global function for Ranking submission
+        window.submitOnlineScore = async function(playerName, streak, timeSec) {
+            if (!db || !currentUser) return;
+            try {
+                // Rule 1: STRICT PATH
+                const rankingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'rankings');
+                await addDoc(rankingsCol, {
+                    name: playerName || "名無し探索者",
+                    streak: streak,
+                    timeSec: timeSec,
+                    createdAt: new Date().toISOString(),
+                    userId: currentUser.uid
+                });
+                console.log("Score submitted successfully!");
+                fetchOnlineRankings();
+            } catch (e) {
+                console.error("Error submitting score:", e);
+            }
+        };
+
+        // Fetch Rankings
+        async function fetchOnlineRankings() {
+            const container = document.getElementById('ranking-list-container');
+            if (!db || !currentUser) {
+                container.innerHTML = `<div class="text-center py-6 text-gray-500 text-xs">ランキング機能はオンライン環境で利用可能です。</div>`;
+                return;
+            }
+
+            try {
+                // Rule 1: STRICT PATH
+                const rankingsCol = collection(db, 'artifacts', appId, 'public', 'data', 'rankings');
+                // Rule 2: NO COMPLEX QUERIES - Fetch & Sort in memory
+                const snapshot = await getDocs(rankingsCol);
+                let docs = [];
+                snapshot.forEach(doc => {
+                    docs.push(doc.data());
+                });
+
+                // Sort in JS: primary by streak descending, secondary by timeSec ascending
+                docs.sort((a, b) => {
+                    if (b.streak !== a.streak) return b.streak - a.streak;
+                    return a.timeSec - b.timeSec;
+                });
+
+                // Take Top 10
+                const top10 = docs.slice(0, 10);
+
+                if (top10.length === 0) {
+                    container.innerHTML = `<div class="text-center py-6 text-gray-400 text-xs">まだ記録がありません。一番乗りを目指そう！</div>`;
+                    return;
+                }
+
+                let html = '';
+                top10.forEach((item, index) => {
+                    let rankBadge = `${index + 1}`;
+                    let borderGlow = "border-white/10";
+                    let rankColor = "text-gray-400";
+                    if (index === 0) { rankBadge = "🥇 1st"; borderGlow = "border-yellow-500/50 bg-yellow-500/10"; rankColor = "text-yellow-400 font-bold"; }
+                    else if (index === 1) { rankBadge = "🥈 2nd"; borderGlow = "border-gray-300/40 bg-gray-300/10"; rankColor = "text-gray-200 font-bold"; }
+                    else if (index === 2) { rankBadge = "🥉 3rd"; borderGlow = "border-amber-600/40 bg-amber-600/10"; rankColor = "text-amber-400 font-bold"; }
+
+                    const timeStr = formatTimer(item.timeSec || 0);
+
+                    html += `
+                        <div class="p-2.5 rounded-xl bg-slate-900/70 border ${borderGlow} flex items-center justify-between text-xs font-mono">
+                            <div class="flex items-center gap-2">
+                                <span class="w-12 text-center font-orbitron ${rankColor}">${rankBadge}</span>
+                                <span class="text-white font-bold max-w-[110px] truncate">${escapeHtml(item.name)}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-cyan-300 font-bold font-orbitron text-sm">${item.streak}</span>
+                                <span class="text-gray-400 text-[10px]">連勝</span>
+                                <span class="text-gray-500 text-[10px] ml-1">(${timeStr})</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (e) {
+                console.error("Error fetching rankings:", e);
+                container.innerHTML = `<div class="text-center py-6 text-red-400 text-xs">ランキング取得失敗。</div>`;
+            }
+        }
+
+        window.refreshRankings = fetchOnlineRankings;
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatTimer(totalSec) {
+            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const s = Math.floor(totalSec % 60).toString().padStart(2, '0');
+            const ms = Math.floor((totalSec % 1) * 10);
+            return `${m}:${s}.${ms}`;
+        }
+    </script>
+
+    <!-- Main Game Logic Script -->
     <script>
-        // --- GAME CONFIGURATION & STATE ---
-        let currentStage = 0; // 0, 1, 2, ...
+        // --- GAME STATE VARIABLES ---
+        let currentStage = 0;
         let bestStreak = parseInt(localStorage.getItem('probability_labyrinth_best') || '0');
-        let correctGate = 'blue'; // 'blue' or 'red'
+        let correctGate = 'blue';
         let isMoving = false;
         let isSoundMuted = false;
         let audioInitialized = false;
         let lastDeathCause = "崖下へ落下";
 
-        // Stage Themes configuration
+        // Timer Variables
+        let gameStartTime = 0;
+        let elapsedPlayTime = 0;
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        // Player Name Storage
+        let savedPlayerName = localStorage.getItem('probability_player_name') || '';
+
+        // --- EXPANDED LOCATION STAGE THEMES ---
         const STAGE_THEMES = [
             {
                 name: "青と赤の二分決断",
+                locationType: "サイバー空間",
                 fogColor: 0x070b19,
                 bgColor: 0x030712,
                 blueGateColor: 0x00f0ff,
                 redGateColor: 0xff0055,
                 gridColor: 0x1e293b,
                 particlesColor: 0x38bdf8,
-                geometryType: 'cubes',
+                envType: 'cubes',
                 specialEffect: 'none'
             },
             {
-                name: "鏡の世界 (MIRROR WORLD)",
-                fogColor: 0x101528,
-                bgColor: 0x080c18,
+                name: "摩天楼ネオン・シティ",
+                locationType: "ハイテク都市",
+                fogColor: 0x0f172a,
+                bgColor: 0x020617,
                 blueGateColor: 0x38bdf8,
-                redGateColor: 0xe879f9,
-                gridColor: 0x475569,
-                particlesColor: 0xe2e8f0,
-                geometryType: 'octahedrons',
-                specialEffect: 'mirror'
+                redGateColor: 0xf43f5e,
+                gridColor: 0x334155,
+                particlesColor: 0x38bdf8,
+                envType: 'city',
+                specialEffect: 'none'
             },
             {
-                name: "変な奴がいる異次元 (UNKNOWN ENTITY)",
+                name: "果てしなきネオン砂漠",
+                locationType: "電脳砂漠",
+                fogColor: 0x271a0c,
+                bgColor: 0x120a03,
+                blueGateColor: 0x22d3ee,
+                redGateColor: 0xf97316,
+                gridColor: 0x78350f,
+                particlesColor: 0xfde047,
+                envType: 'desert',
+                specialEffect: 'none'
+            },
+            {
+                name: "サンセット・草原回廊",
+                locationType: "黄昏の平原",
+                fogColor: 0x2a0813,
+                bgColor: 0x140308,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xf43f5e,
+                gridColor: 0x831843,
+                particlesColor: 0xfbcfe8,
+                envType: 'meadow',
+                specialEffect: 'none'
+            },
+            {
+                name: "変な奴がいる異次元",
+                locationType: "未知の次元",
                 fogColor: 0x1d0029,
                 bgColor: 0x0b0012,
                 blueGateColor: 0x00ffaa,
                 redGateColor: 0xff00aa,
                 gridColor: 0x581c87,
                 particlesColor: 0xa855f7,
-                geometryType: 'spheres',
+                envType: 'spheres',
                 specialEffect: 'creature'
             },
             {
-                name: "マトリックス・デジタル",
-                fogColor: 0x022c22,
-                bgColor: 0x021712,
-                blueGateColor: 0x00ff88,
-                redGateColor: 0xff3300,
-                gridColor: 0x065f46,
-                particlesColor: 0x34d399,
-                geometryType: 'pyramids',
-                specialEffect: 'none'
-            },
-            {
-                name: "ステラ・星雲空間",
-                fogColor: 0x18002e,
-                bgColor: 0x0a0014,
-                blueGateColor: 0x818cf8,
-                redGateColor: 0xf43f5e,
-                gridColor: 0x4c1d95,
-                particlesColor: 0xc084fc,
-                geometryType: 'spheres',
-                specialEffect: 'none'
-            },
-            {
-                name: "ヴォルカニック・コア",
-                fogColor: 0x2e0800,
-                bgColor: 0x140300,
-                blueGateColor: 0x38bdf8,
-                redGateColor: 0xff4500,
-                gridColor: 0x7c2d12,
-                particlesColor: 0xfb923c,
-                geometryType: 'cubes',
-                specialEffect: 'none'
-            },
-            {
-                name: "クリスタル・氷結領域",
+                name: "クリスタル・氷結連峰",
+                locationType: "氷結地帯",
                 fogColor: 0x042f2e,
                 bgColor: 0x021e1d,
                 blueGateColor: 0x22d3ee,
                 redGateColor: 0xf472b6,
                 gridColor: 0x115e59,
                 particlesColor: 0x67e8f9,
-                geometryType: 'octahedrons',
+                envType: 'crystals',
                 specialEffect: 'none'
             },
             {
-                name: "レトロ・シンスウェーブ",
-                fogColor: 0x310022,
-                bgColor: 0x15000e,
-                blueGateColor: 0x06b6d4,
-                redGateColor: 0xff007f,
-                gridColor: 0x831843,
-                particlesColor: 0xf472b6,
-                geometryType: 'pyramids',
+                name: "ディープ・アビス深海",
+                locationType: "深海エリア",
+                fogColor: 0x031b29,
+                bgColor: 0x010c14,
+                blueGateColor: 0x00f0ff,
+                redGateColor: 0xec4899,
+                gridColor: 0x075985,
+                particlesColor: 0x38bdf8,
+                envType: 'underwater',
                 specialEffect: 'none'
             },
             {
-                name: "黄金の聖域 (GOLD SANCTUARY)",
+                name: "ヴォルカニック・コア",
+                locationType: "溶岩火山",
+                fogColor: 0x2e0800,
+                bgColor: 0x140300,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xff4500,
+                gridColor: 0x7c2d12,
+                particlesColor: 0xfb923c,
+                envType: 'volcano',
+                specialEffect: 'none'
+            },
+            {
+                name: "鏡の世界 (MIRROR WORLD)",
+                locationType: "反転空間",
+                fogColor: 0x101528,
+                bgColor: 0x080c18,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xe879f9,
+                gridColor: 0x475569,
+                particlesColor: 0xe2e8f0,
+                envType: 'octahedrons',
+                specialEffect: 'mirror'
+            },
+            {
+                name: "朱塗りの鳥居・幻想領域",
+                locationType: "和風・異空間",
+                fogColor: 0x2a0000,
+                bgColor: 0x120000,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xd97706,
+                gridColor: 0x991b1b,
+                particlesColor: 0xfef08a,
+                envType: 'torii',
+                specialEffect: 'none'
+            },
+            {
+                name: "黄金のパルテノン聖域",
+                locationType: "黄金神殿",
                 fogColor: 0x291d00,
                 bgColor: 0x120d00,
                 blueGateColor: 0x38bdf8,
                 redGateColor: 0xeab308,
                 gridColor: 0x713f12,
                 particlesColor: 0xfde047,
-                geometryType: 'pyramids',
+                envType: 'pyramids',
                 specialEffect: 'none'
             },
             {
                 name: "カオス・ブラックホール",
+                locationType: "銀河最果て",
                 fogColor: 0x1f0000,
                 bgColor: 0x0a0000,
                 blueGateColor: 0x00ffff,
                 redGateColor: 0xff0000,
                 gridColor: 0x7f1d1d,
                 particlesColor: 0xff8800,
-                geometryType: 'cubes',
+                envType: 'cubes',
                 specialEffect: 'creature'
             }
         ];
 
-        // --- AUDIO SYNTHESIS (Tone.js) ---
-        let correctSynth, wrongSynth, warpSynth, roarSynth;
+        // --- ADAPTIVE DOPAMINE SOUND SYSTEM (Tone.js) ---
+        let synthBass, synthArp, synthLead, drumKick, drumHiHat, wrongSynth, warpSynth, roarSynth;
+        let bgmLoopPattern = null;
+        let currentBgmLevel = 0;
 
-        function initAudio() {
+        function initAudioEngine() {
             if (audioInitialized) return;
             try {
                 Tone.start();
-                
-                correctSynth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "sine" },
-                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
-                }).toDestination();
-                correctSynth.volume.value = -6;
 
+                // Synth Instruments
+                synthBass = new Tone.MonoSynth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.2 },
+                    filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.5, baseFrequency: 200, octaves: 3 }
+                }).toDestination();
+                synthBass.volume.value = -10;
+
+                synthArp = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.005, decay: 0.15, sustain: 0, release: 0.1 }
+                }).toDestination();
+                synthArp.volume.value = -14;
+
+                synthLead = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.02, decay: 0.3, sustain: 0.4, release: 0.4 }
+                }).toDestination();
+                synthLead.volume.value = -12;
+
+                // Drums
+                drumKick = new Tone.MembraneSynth().toDestination();
+                drumKick.volume.value = -6;
+
+                drumHiHat = new Tone.MetalSynth({
+                    frequency: 200,
+                    envelope: { attack: 0.001, decay: 0.05, release: 0.05 },
+                    harmonicity: 5.1,
+                    modulationIndex: 32,
+                    resonance: 4000,
+                    octaves: 1.5
+                }).toDestination();
+                drumHiHat.volume.value = -22;
+
+                // SFX Synths
                 wrongSynth = new Tone.Synth({
                     oscillator: { type: "sawtooth" },
                     envelope: { attack: 0.01, decay: 0.6, sustain: 0, release: 0.3 }
                 }).toDestination();
-                wrongSynth.volume.value = -3;
+                wrongSynth.volume.value = -4;
 
                 warpSynth = new Tone.MonoSynth({
                     oscillator: { type: "sine" },
-                    envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 0.8 }
+                    envelope: { attack: 0.05, decay: 0.4, sustain: 0.1, release: 0.6 }
                 }).toDestination();
-                warpSynth.volume.value = -10;
+                warpSynth.volume.value = -8;
 
                 roarSynth = new Tone.NoiseSynth({
                     noise: { type: 'brown' },
@@ -360,31 +640,105 @@
                 }).toDestination();
                 roarSynth.volume.value = -2;
 
+                // Setup Adaptive BGM Loop
+                setupBgmLoop();
+
+                Tone.Transport.bpm.value = 124;
+                Tone.Transport.start();
+
                 audioInitialized = true;
             } catch (e) {
                 console.warn("Audio Context init failed:", e);
             }
         }
 
-        function playSound(type) {
+        // BGM Pattern Sequencer (Scales with stage)
+        function setupBgmLoop() {
+            const notesBass = ["C2", "C2", "Eb2", "F2", "G2", "G2", "Bb2", "C2"];
+            const notesArp = ["C4", "Eb4", "G4", "C5", "G4", "Eb4", "Bb4", "D5"];
+            const notesLead = ["C5", "G5", "Eb5", "C5", "F5", "D5", "Bb4", "C5"];
+
+            let step = 0;
+
+            Tone.Transport.scheduleRepeat((time) => {
+                if (isSoundMuted) return;
+
+                const stage = currentStage;
+                // Level 1+: Bass
+                if (step % 2 === 0) {
+                    synthBass.triggerAttackRelease(notesBass[Math.floor(step / 2) % notesBass.length], "8n", time);
+                }
+
+                // Level 2+: Arpeggio Synth (Unlock Stage 3)
+                if (stage >= 2) {
+                    synthArp.triggerAttackRelease(notesArp[step % notesArp.length], "16n", time);
+                }
+
+                // Level 3+: 4-on-the-floor Kick & Hi-Hat (Unlock Stage 5)
+                if (stage >= 4) {
+                    if (step % 4 === 0) {
+                        drumKick.triggerAttackRelease("C1", "8n", time);
+                    }
+                    if (step % 2 === 1) {
+                        drumHiHat.triggerAttackRelease("16n", time);
+                    }
+                }
+
+                // Level 4+: Lead Melody (Unlock Stage 8)
+                if (stage >= 7 && step % 4 === 0) {
+                    synthLead.triggerAttackRelease(notesLead[Math.floor(step / 4) % notesLead.length], "4n", time);
+                }
+
+                // Level 5+: High Dopamine Rapid Arp & Bass Double (Unlock Stage 12+)
+                if (stage >= 11) {
+                    synthArp.triggerAttackRelease(notesArp[(step * 2) % notesArp.length], "32n", time + 0.05);
+                }
+
+                step = (step + 1) % 16;
+            }, "16n");
+        }
+
+        // Dynamically adjust BPM and BGM Complexity based on stage
+        function updateAdaptiveMusic(stage) {
+            if (!audioInitialized) return;
+            
+            // Base BPM starts at 124, increases up to 170 BPM as stage advances!
+            const newBpm = Math.min(124 + stage * 3, 175);
+            Tone.Transport.bpm.rampTo(newBpm, 1);
+
+            let bgmLv = 1;
+            if (stage >= 11) bgmLv = 5;
+            else if (stage >= 7) bgmLv = 4;
+            else if (stage >= 4) bgmLv = 3;
+            else if (stage >= 2) bgmLv = 2;
+
+            currentBgmLevel = bgmLv;
+            document.getElementById('bgm-level-badge').innerText = `BGM LV.${bgmLv} (${Math.round(newBpm)} BPM)`;
+        }
+
+        function playSoundSFX(type) {
             if (isSoundMuted || !audioInitialized) return;
             try {
                 const now = Tone.now();
                 if (type === 'correct') {
-                    correctSynth.triggerAttackRelease(["E5", "B5", "E6"], "16n", now);
+                    // Ascending Euphoric Chime
+                    const leadNotes = ["C5", "E5", "G5", "C6"];
+                    leadNotes.forEach((note, i) => {
+                        synthLead.triggerAttackRelease(note, "16n", now + i * 0.05);
+                    });
                 } else if (type === 'wrong') {
-                    wrongSynth.triggerAttackRelease("G1", "4n", now);
+                    wrongSynth.triggerAttackRelease("F1", "4n", now);
                 } else if (type === 'warp') {
-                    warpSynth.triggerAttackRelease("C3", "4n", now);
+                    warpSynth.triggerAttackRelease("C2", "4n", now);
                 } else if (type === 'roar') {
                     roarSynth.triggerAttackRelease("2n", now);
                 }
             } catch (e) {
-                // Ignore audio trigger errors
+                // Ignore audio errors
             }
         }
 
-        // --- THREE.JS ENGINE SETUP ---
+        // --- THREE.JS ENGINE & SCENE SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.fog = new THREE.FogExp2(STAGE_THEMES[0].fogColor, 0.035);
@@ -411,7 +765,7 @@
         redGateLight.position.set(2.5, 2, 0);
         scene.add(redGateLight);
 
-        // Floor Grid & Ceiling Grid (for mirror world)
+        // Floor Grid & Ceiling Grid
         let gridHelper = new THREE.GridHelper(100, 50, 0x00f0ff, 0x1e293b);
         gridHelper.position.y = 0;
         scene.add(gridHelper);
@@ -422,7 +776,7 @@
         scene.add(ceilingGridHelper);
 
         // Floating Background Particles
-        const particleCount = 200;
+        const particleCount = 250;
         const particleGeometry = new THREE.BufferGeometry();
         const particlePositions = new Float32Array(particleCount * 3);
         for (let i = 0; i < particleCount * 3; i += 3) {
@@ -440,22 +794,19 @@
         const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
         scene.add(particleSystem);
 
-        // Floating Stage Geometries Container
-        const floatingGroup = new THREE.Group();
-        scene.add(floatingGroup);
-        let floatingMeshes = [];
+        // Environment Object Group (Buildings, Pyramids, Torii, Mountains, Crystals)
+        const environmentGroup = new THREE.Group();
+        scene.add(environmentGroup);
+        let environmentMeshes = [];
 
-        // Special Weird Creature Group ("変な奴")
+        // Special Creature Group ("変な奴")
         const creatureGroup = new THREE.Group();
         creatureGroup.position.set(0, 3.5, -6);
         scene.add(creatureGroup);
         let creatureCoreMesh, creatureEyeMesh;
 
         function buildWeirdCreature() {
-            while(creatureGroup.children.length > 0){ 
-                creatureGroup.remove(creatureGroup.children[0]); 
-            }
-            // Weird Pulsing Spiky Core
+            while(creatureGroup.children.length > 0){ creatureGroup.remove(creatureGroup.children[0]); }
             const coreGeom = new THREE.IcosahedronGeometry(1.4, 1);
             const coreMat = new THREE.MeshStandardMaterial({
                 color: 0xff00bb,
@@ -466,7 +817,6 @@
             creatureCoreMesh = new THREE.Mesh(coreGeom, coreMat);
             creatureGroup.add(creatureCoreMesh);
 
-            // Eyeball in center
             const eyeGeom = new THREE.SphereGeometry(0.6, 16, 16);
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
             creatureEyeMesh = new THREE.Mesh(eyeGeom, eyeMat);
@@ -482,33 +832,79 @@
         buildWeirdCreature();
         creatureGroup.visible = false;
 
-        function createFloatingEnvironment(type) {
-            floatingMeshes.forEach(mesh => floatingGroup.remove(mesh));
-            floatingMeshes = [];
+        // Procedural Environment Generator for Various Locations
+        function buildEnvironmentForTheme(type) {
+            // Clear existing environment
+            environmentMeshes.forEach(mesh => environmentGroup.remove(mesh));
+            environmentMeshes = [];
 
-            let geom;
-            if (type === 'cubes') geom = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-            else if (type === 'pyramids') geom = new THREE.ConeGeometry(0.6, 1, 4);
-            else if (type === 'spheres') geom = new THREE.IcosahedronGeometry(0.6, 0);
-            else geom = new THREE.OctahedronGeometry(0.7);
+            const matWire = new THREE.MeshStandardMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.35 });
+            const matSolid = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3, metalness: 0.7 });
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.4
-            });
-
-            for (let i = 0; i < 25; i++) {
-                const mesh = new THREE.Mesh(geom, mat);
-                mesh.position.set(
-                    (Math.random() - 0.5) * 30,
-                    Math.random() * 12 + 1,
-                    (Math.random() - 0.5) * 40 - 10
-                );
-                mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-                floatingGroup.add(mesh);
-                floatingMeshes.push(mesh);
+            if (type === 'city') {
+                // Cyber Skyscrapers
+                for (let i = 0; i < 30; i++) {
+                    const h = Math.random() * 15 + 5;
+                    const geom = new THREE.BoxGeometry(2, h, 2);
+                    const mesh = new THREE.Mesh(geom, matWire);
+                    const x = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 12 + 5);
+                    const z = (Math.random() - 0.5) * 40 - 5;
+                    mesh.position.set(x, h / 2, z);
+                    environmentGroup.add(mesh);
+                    environmentMeshes.push(mesh);
+                }
+            } else if (type === 'desert' || type === 'pyramids') {
+                // Pyramids & Dunes
+                for (let i = 0; i < 12; i++) {
+                    const size = Math.random() * 8 + 4;
+                    const geom = new THREE.ConeGeometry(size, size, 4);
+                    const mesh = new THREE.Mesh(geom, matWire);
+                    const x = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 16 + 6);
+                    const z = (Math.random() - 0.5) * 50 - 5;
+                    mesh.position.set(x, size / 2, z);
+                    environmentGroup.add(mesh);
+                    environmentMeshes.push(mesh);
+                }
+            } else if (type === 'meadow') {
+                // Low-poly Islands/Hills
+                for (let i = 0; i < 20; i++) {
+                    const geom = new THREE.DodecahedronGeometry(Math.random() * 2 + 1);
+                    const mesh = new THREE.Mesh(geom, matWire);
+                    mesh.position.set((Math.random() - 0.5) * 35, Math.random() * 8 + 1, (Math.random() - 0.5) * 40 - 5);
+                    environmentGroup.add(mesh);
+                    environmentMeshes.push(mesh);
+                }
+            } else if (type === 'crystals') {
+                // Sharp Crystals
+                for (let i = 0; i < 25; i++) {
+                    const geom = new THREE.OctahedronGeometry(Math.random() * 1.5 + 0.8);
+                    const mesh = new THREE.Mesh(geom, matWire);
+                    mesh.position.set((Math.random() - 0.5) * 30, Math.random() * 10 + 0.5, (Math.random() - 0.5) * 40 - 5);
+                    environmentGroup.add(mesh);
+                    environmentMeshes.push(mesh);
+                }
+            } else if (type === 'torii') {
+                // Japanese Torii Gates in background
+                for (let i = 0; i < 6; i++) {
+                    const frameGroup = new THREE.Group();
+                    const pGeom = new THREE.BoxGeometry(0.4, 5, 0.4);
+                    const p1 = new THREE.Mesh(pGeom, matWire); p1.position.x = -2;
+                    const p2 = new THREE.Mesh(pGeom, matWire); p2.position.x = 2;
+                    const topG = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 0.5), matWire); topG.position.y = 2.5;
+                    frameGroup.add(p1, p2, topG);
+                    frameGroup.position.set(0, 2.5, -i * 8 - 8);
+                    environmentGroup.add(frameGroup);
+                    environmentMeshes.push(frameGroup);
+                }
+            } else {
+                // Default Cubes/Spheres
+                for (let i = 0; i < 25; i++) {
+                    const geom = type === 'spheres' ? new THREE.IcosahedronGeometry(0.8, 0) : new THREE.BoxGeometry(1, 1, 1);
+                    const mesh = new THREE.Mesh(geom, matWire);
+                    mesh.position.set((Math.random() - 0.5) * 30, Math.random() * 10 + 1, (Math.random() - 0.5) * 40 - 5);
+                    environmentGroup.add(mesh);
+                    environmentMeshes.push(mesh);
+                }
             }
         }
 
@@ -536,7 +932,6 @@
 
             group.add(leftPillar, rightPillar, topBar);
 
-            // Portal Glow Surface
             const portalGeom = new THREE.PlaneGeometry(2.4, 4.1);
             const portalMat = new THREE.MeshBasicMaterial({
                 color: glowColorHex,
@@ -548,7 +943,6 @@
             portalPlane.position.set(0, 2.1, 0);
             group.add(portalPlane);
 
-            // Neon Edges
             const borderGeom = new THREE.BoxGeometry(2.6, 4.3, 0.1);
             const borderEdges = new THREE.EdgesGeometry(borderGeom);
             const borderMat = new THREE.LineBasicMaterial({ color: glowColorHex, linewidth: 2 });
@@ -567,12 +961,11 @@
         rightGateObj.group.position.set(2.5, 0, -2);
         scene.add(rightGateObj.group);
 
-        createFloatingEnvironment(STAGE_THEMES[0].geometryType);
+        buildEnvironmentForTheme(STAGE_THEMES[0].envType);
 
         // --- GAME LOGIC & RANDOMIZATION ---
         function randomizeGate() {
             correctGate = Math.random() < 0.5 ? 'blue' : 'red';
-            console.log(`[Stage ${currentStage + 1}] Correct gate: ${correctGate.toUpperCase()}`);
         }
 
         function updateStageVisuals(stageIdx) {
@@ -600,9 +993,6 @@
             gridHelper.position.y = 0;
             scene.add(gridHelper);
 
-            // Reset Grid position in case of previous death animation
-            gridHelper.position.x = 0;
-
             // Mirror World Ceiling Grid
             if (theme.specialEffect === 'mirror') {
                 ceilingGridHelper.visible = true;
@@ -616,15 +1006,19 @@
             creatureGroup.position.set(0, 3.5, -6);
             creatureGroup.scale.set(1, 1, 1);
 
-            // Floating Geometries
-            createFloatingEnvironment(theme.geometryType);
+            // Procedural Environments
+            buildEnvironmentForTheme(theme.envType);
 
             // UI HUD Update
             document.getElementById('stage-title-hud').innerText = `STAGE ${stageIdx + 1} - ${theme.name}`;
+            document.getElementById('hud-location-name').innerText = theme.locationType;
             document.getElementById('current-streak-val').innerText = `${stageIdx} 回`;
             document.getElementById('best-streak-val').innerText = `${bestStreak} 回`;
 
-            // Probability Calculation: 1 / 2^(stageIdx + 1)
+            // Update Music Tempo & Complexity!
+            updateAdaptiveMusic(stageIdx);
+
+            // Probability Calculation
             const denominatorBig = Math.pow(2, stageIdx + 1);
             let displayDenom = denominatorBig.toLocaleString();
             let displayPercent = (100 / denominatorBig);
@@ -640,11 +1034,36 @@
             document.getElementById('prob-percent').innerText = displayPercent;
         }
 
+        // --- TIMER HANDLER ---
+        function startPlayTimer() {
+            gameStartTime = performance.now();
+            isTimerRunning = true;
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                if (!isTimerRunning) return;
+                elapsedPlayTime = (performance.now() - gameStartTime) / 1000;
+                document.getElementById('hud-timer-val').innerText = formatTimer(elapsedPlayTime);
+            }, 100);
+        }
+
+        function stopPlayTimer() {
+            isTimerRunning = false;
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function formatTimer(totalSec) {
+            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const s = Math.floor(totalSec % 60).toString().padStart(2, '0');
+            const ms = Math.floor((totalSec % 1) * 10);
+            return `${m}:${s}.${ms}`;
+        }
+
         // --- GATE CHOICE ACTION & CAMERA MOTIONS ---
         function selectGate(chosenColor) {
             if (isMoving) return;
             isMoving = true;
-            initAudio();
+            initAudioEngine();
 
             const isCorrect = (chosenColor === correctGate);
             const targetX = chosenColor === 'blue' ? -2.5 : 2.5;
@@ -653,11 +1072,11 @@
             const startCameraX = camera.position.x;
             const startCameraZ = camera.position.z;
 
-            playSound('warp');
+            playSoundSFX('warp');
 
             function animateCamera(now) {
                 const elapsed = (now - startTime) / 1000;
-                const duration = 0.8;
+                const duration = 0.7;
                 const progress = Math.min(elapsed / duration, 1);
 
                 const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
@@ -677,10 +1096,9 @@
 
         function handleGateOutcome(isCorrect, chosenColor) {
             if (isCorrect) {
-                playSound('correct');
+                playSoundSFX('correct');
                 currentStage++;
                 
-                // Update Best Streak
                 if (currentStage > bestStreak) {
                     bestStreak = currentStage;
                     localStorage.setItem('probability_labyrinth_best', bestStreak.toString());
@@ -696,81 +1114,67 @@
                 camera.updateProjectionMatrix();
                 isMoving = false;
             } else {
-                // GAME OVER - DYNAMIC DEATH ANIMATIONS
+                stopPlayTimer();
                 triggerDeathAnimation(chosenColor);
             }
         }
 
         // --- DYNAMIC DEATH ANIMATION SYSTEM ---
         function triggerDeathAnimation(chosenColor) {
-            playSound('wrong');
+            playSoundSFX('wrong');
             const theme = STAGE_THEMES[currentStage % STAGE_THEMES.length];
             
-            // Choose death style based on stage or random selection
             let deathTypes = ['fall', 'fissure', 'crush', 'laser'];
             if (theme.specialEffect === 'creature') {
-                deathTypes.push('eat', 'eat'); // Higher chance to get eaten when creature exists
+                deathTypes.push('eat', 'eat');
             }
 
             const deathType = deathTypes[Math.floor(Math.random() * deathTypes.length)];
             let deathDuration = 1.2;
-
             let startTime = performance.now();
 
-            if (deathType === 'fall') {
-                lastDeathCause = "底なしの崖へ落下";
-            } else if (deathType === 'eat') {
-                lastDeathCause = "謎の変な奴に捕食された";
-                playSound('roar');
-                creatureGroup.visible = true;
-            } else if (deathType === 'fissure') {
-                lastDeathCause = "次元の裂け目に飲まれた";
-            } else if (deathType === 'crush') {
-                lastDeathCause = "空間圧縮により粉砕";
-            } else {
-                lastDeathCause = "トラップレーザーにより消滅";
-            }
+            if (deathType === 'fall') lastDeathCause = "底なしの崖へ落下";
+            else if (deathType === 'eat') { lastDeathCause = "謎の変な奴に捕食された"; playSoundSFX('roar'); creatureGroup.visible = true; }
+            else if (deathType === 'fissure') lastDeathCause = "次元の裂け目に飲まれた";
+            else if (deathType === 'crush') lastDeathCause = "空間圧縮により粉砕";
+            else lastDeathCause = "トラップレーザーにより消滅";
 
             function playDeathFrame(now) {
                 const elapsed = (now - startTime) / 1000;
                 const progress = Math.min(elapsed / deathDuration, 1);
 
                 if (deathType === 'fall') {
-                    // Camera plunges downward with tilt
                     camera.position.y = 1.6 - (progress * progress * 20);
                     camera.rotation.x = -progress * 1.2;
-                    camera.rotation.z = progress * 0.5;
-                } 
-                else if (deathType === 'eat') {
-                    // Creature rapidly grows and devours camera
+                } else if (deathType === 'eat') {
                     creatureGroup.position.set(camera.position.x, 1.6, camera.position.z - (1 - progress) * 5);
                     const scale = 1 + progress * 8;
                     creatureGroup.scale.set(scale, scale, scale);
-                    camera.rotation.z = (Math.random() - 0.5) * 0.2;
-                } 
-                else if (deathType === 'fissure') {
-                    // Floor splits & screen shakes violently
+                } else if (deathType === 'fissure') {
                     gridHelper.position.x = (progress * 10) * (chosenColor === 'blue' ? -1 : 1);
                     camera.position.y = 1.6 - progress * 10;
-                    camera.position.x += (Math.random() - 0.5) * 0.4;
-                    camera.position.z += (Math.random() - 0.5) * 0.4;
-                } 
-                else if (deathType === 'crush') {
-                    // Lens warp distortion and spiral camera
+                } else if (deathType === 'crush') {
                     camera.fov = 65 + progress * 80;
                     camera.updateProjectionMatrix();
                     camera.rotation.z = progress * Math.PI * 2;
-                }
-                else { // Laser
+                } else {
                     renderer.setClearColor(0xff0033);
-                    camera.position.z += (Math.random() - 0.5) * 0.3;
-                    camera.position.y += (Math.random() - 0.5) * 0.3;
                 }
 
                 if (progress < 1) {
                     requestAnimationFrame(playDeathFrame);
                 } else {
                     renderer.setClearColor(0x000000);
+                    
+                    // Submit Online Ranking Score
+                    const nameInput = document.getElementById('player-name-input').value.trim();
+                    if (nameInput) {
+                        localStorage.setItem('probability_player_name', nameInput);
+                    }
+                    if (window.submitOnlineScore) {
+                        window.submitOnlineScore(nameInput || "名無し探索者", currentStage, elapsedPlayTime);
+                    }
+
                     showGameEndModal(false);
                 }
             }
@@ -778,7 +1182,7 @@
             requestAnimationFrame(playDeathFrame);
         }
 
-        // --- MODAL & UI HANDLERS ---
+        // --- MODAL & UI TAB HANDLERS ---
         const modalOverlay = document.getElementById('modal-overlay');
         const modalTitle = document.getElementById('modal-title');
         const modalDesc = document.getElementById('modal-desc');
@@ -788,17 +1192,45 @@
         const iconStart = document.getElementById('modal-icon-start');
         const iconFail = document.getElementById('modal-icon-fail');
 
+        const tabGameBtn = document.getElementById('tab-btn-game');
+        const tabRankingBtn = document.getElementById('tab-btn-ranking');
+        const tabContentGame = document.getElementById('tab-content-game');
+        const tabContentRanking = document.getElementById('tab-content-ranking');
+
+        // Tab Switching
+        tabGameBtn.addEventListener('click', () => {
+            tabGameBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md";
+            tabRankingBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all text-gray-400 hover:text-white";
+            tabContentGame.classList.remove('hidden');
+            tabContentRanking.classList.add('hidden');
+        });
+
+        tabRankingBtn.addEventListener('click', () => {
+            tabRankingBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md";
+            tabGameBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all text-gray-400 hover:text-white";
+            tabContentRanking.classList.remove('hidden');
+            tabContentGame.classList.add('hidden');
+            if (window.refreshRankings) window.refreshRankings();
+        });
+
+        document.getElementById('refresh-ranking-btn').addEventListener('click', () => {
+            if (window.refreshRankings) window.refreshRankings();
+        });
+
         function showGameEndModal(isStart) {
             modalOverlay.classList.remove('opacity-0', 'pointer-events-none');
             
             iconStart.classList.add('hidden');
             iconFail.classList.add('hidden');
 
+            // Set Saved Player Name
+            document.getElementById('player-name-input').value = savedPlayerName;
+
             if (isStart) {
                 modalStats.classList.add('hidden');
                 modalTitle.innerText = "確率の迷宮";
-                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300";
-                modalDesc.innerHTML = `2分の1の選択を当て続けろ！<br>どこまで連続正解できるか限界に挑戦。<br>進むたびに変形する怪しい世界を突き進め。`;
+                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300";
+                modalDesc.innerHTML = `1/2の選択を当て続けろ！<br>連続成功で<b>テンポUP＆トランスBGMが進化！</b><br>街・砂漠・平原・深海...未知のロケーションを駆け抜けろ！`;
                 iconStart.classList.remove('hidden');
                 modalActionBtn.innerText = "CHALLENGE START";
             } else {
@@ -807,12 +1239,13 @@
                 
                 const denom = Math.pow(2, currentStage).toLocaleString();
                 document.getElementById('stat-prob').innerText = `1 / ${denom}`;
+                document.getElementById('stat-time').innerText = formatTimer(elapsedPlayTime);
                 document.getElementById('stat-cause').innerText = lastDeathCause;
                 document.getElementById('stat-best').innerText = `${bestStreak} 回連続成功`;
 
                 modalTitle.innerText = "PROBABILITY FAILED";
-                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-300 to-white glow-red";
-                modalDesc.innerHTML = `<span class="text-red-400 font-bold">ハズレのゲートを選択しました。</span><br>確率の壁に阻まれました。もう一度挑戦しますか？`;
+                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-300 to-white glow-red";
+                modalDesc.innerHTML = `<span class="text-red-400 font-bold">ハズレのゲートを選択しました。</span><br>スコアがオンラインランキングに保存されました！`;
                 iconFail.classList.remove('hidden');
                 modalActionBtn.innerText = "RETRY CHALLENGE";
             }
@@ -821,6 +1254,13 @@
         function startNewGame() {
             currentStage = 0;
             isMoving = false;
+
+            // Save Name
+            const nameVal = document.getElementById('player-name-input').value.trim();
+            if (nameVal) {
+                savedPlayerName = nameVal;
+                localStorage.setItem('probability_player_name', savedPlayerName);
+            }
 
             // Reset camera state
             camera.position.set(0, 1.6, 6);
@@ -831,12 +1271,14 @@
             randomizeGate();
             updateStageVisuals(0);
 
+            startPlayTimer();
+
             modalOverlay.classList.add('opacity-0', 'pointer-events-none');
         }
 
         // Event Listeners
         document.getElementById('modal-action-btn').addEventListener('click', () => {
-            initAudio();
+            initAudioEngine();
             startNewGame();
         });
 
@@ -856,7 +1298,7 @@
         });
 
         document.getElementById('sound-btn').addEventListener('click', () => {
-            initAudio();
+            initAudioEngine();
             isSoundMuted = !isSoundMuted;
             document.getElementById('sound-icon-on').classList.toggle('hidden', isSoundMuted);
             document.getElementById('sound-icon-off').classList.toggle('hidden', !isSoundMuted);
@@ -868,17 +1310,17 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // --- MAIN RENDER LOOP ---
+        // --- MAIN ANIMATION RENDER LOOP ---
         function animate(time) {
             requestAnimationFrame(animate);
 
             const t = time * 0.001;
 
-            // Idle Gate Animation
+            // Idle Gate Floating Animation
             leftGateObj.group.position.y = Math.sin(t * 2) * 0.08;
             rightGateObj.group.position.y = Math.sin(t * 2 + 1) * 0.08;
 
-            // Creature Animation (If visible)
+            // Creature Animation
             if (creatureGroup.visible) {
                 creatureGroup.position.y = 3.5 + Math.sin(t * 3) * 0.3;
                 if (creatureCoreMesh) {
@@ -890,10 +1332,9 @@
                 }
             }
 
-            // Floating background meshes
-            floatingMeshes.forEach((mesh, idx) => {
-                mesh.rotation.x += 0.005 * (idx % 2 === 0 ? 1 : -1);
-                mesh.rotation.y += 0.008;
+            // Environment Animation Rotations
+            environmentMeshes.forEach((mesh, idx) => {
+                mesh.rotation.y += 0.003 * (idx % 2 === 0 ? 1 : -1);
             });
 
             // Particles Drift
