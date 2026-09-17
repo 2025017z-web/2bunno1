@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>確率の迷宮</title>
+    <title>確率の迷宮 - Probability Warp</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
@@ -63,14 +63,14 @@
     <!-- 3D Canvas Container -->
     <div id="canvas-container" class="absolute inset-0 z-0"></div>
 
-    <!-- HUD Header: Stage Progress & Sound Control -->
+    <!-- HUD Header: Title & Sound Toggle -->
     <div class="absolute top-0 left-0 right-0 z-10 p-4 md:p-6 flex justify-between items-center pointer-events-none">
         <!-- Title & Stage Status -->
         <div class="pointer-events-auto flex items-center gap-3">
             <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3">
                 <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
                 <span id="stage-title-hud" class="font-orbitron text-xs md:text-sm font-bold tracking-widest text-cyan-300 uppercase">
-                    STAGE 1 / 10
+                    STAGE 1 - 青と赤の二分決断
                 </span>
             </div>
         </div>
@@ -87,24 +87,21 @@
         </button>
     </div>
 
-    <!-- Top Stage Indicator Bar -->
+    <!-- Top Score Info Bar -->
     <div class="absolute top-16 md:top-20 left-1/2 -translate-x-1/2 z-10 w-11/12 max-w-md pointer-events-none">
-        <div class="flex justify-between items-center gap-1.5 md:gap-2 glass-panel p-2 rounded-full">
-            <!-- 10 Step Dots -->
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-cyan-400 shadow-[0_0_8px_#22d3ee]" data-step="1"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="2"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="3"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="4"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="5"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="6"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="7"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="8"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="9"></div>
-            <div class="step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700" data-step="10"></div>
+        <div class="flex justify-between items-center glass-panel px-5 py-2 rounded-full text-xs font-mono">
+            <div>
+                <span class="text-gray-400">連続突破数: </span>
+                <span id="current-streak-val" class="text-cyan-300 font-bold font-orbitron text-sm">0 回</span>
+            </div>
+            <div>
+                <span class="text-gray-400">最高記録: </span>
+                <span id="best-streak-val" class="text-yellow-400 font-bold font-orbitron text-sm">0 回</span>
+            </div>
         </div>
     </div>
 
-    <!-- Interactive Controls (Left / Right Touch & Click Buttons) -->
+    <!-- Interactive Controls (Left / Right Gate Touch & Buttons) -->
     <div id="controls-container" class="absolute inset-0 z-10 flex pointer-events-none">
         <!-- Left Choice (Blue Gate) -->
         <div id="left-touch-zone" class="w-1/2 h-full pointer-events-auto cursor-pointer group flex items-end pb-32 md:pb-36 justify-center">
@@ -129,25 +126,25 @@
             <div id="hud-glow-bg" class="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-xl transition-all duration-700"></div>
 
             <div class="relative z-10">
-                <div class="text-xs uppercase tracking-widest text-gray-400 font-medium mb-1">CURRENT PROBABILITY</div>
+                <div class="text-xs uppercase tracking-widest text-gray-400 font-medium mb-1">現在の到達確率</div>
                 
                 <!-- Main Probability Value Display -->
                 <div class="flex items-center justify-center gap-2">
-                    <span class="text-xs text-cyan-400 font-orbitron">1 /</span>
+                    <span class="text-sm text-cyan-400 font-orbitron">1 /</span>
                     <span id="prob-denominator" class="text-3xl md:text-5xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-teal-200 to-white glow-blue">
                         2
                     </span>
                 </div>
 
-                <!-- Detail Percent & Streak Info -->
+                <!-- Detail Percent Info -->
                 <div class="mt-2 flex items-center justify-between text-xs font-mono text-gray-300 px-2 pt-2 border-t border-white/10">
                     <div>
-                        <span class="text-gray-500">到達確率:</span>
+                        <span class="text-gray-500">パーセンテージ:</span>
                         <span id="prob-percent" class="text-cyan-300 font-bold">50.000%</span>
                     </div>
                     <div>
-                        <span class="text-gray-500">連続成功:</span>
-                        <span id="streak-count" class="text-yellow-400 font-bold">0 / 10</span>
+                        <span class="text-gray-500">モード:</span>
+                        <span class="text-purple-400 font-bold">無限迷宮</span>
                     </div>
                 </div>
             </div>
@@ -166,36 +163,37 @@
                 <svg id="modal-icon-fail" class="w-10 h-10 text-red-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
-                <svg id="modal-icon-clear" class="w-10 h-10 text-yellow-300 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                </svg>
             </div>
 
             <!-- Modal Title -->
             <h1 id="modal-title" class="text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300">
-                PROBABILITY WARP
+                確率の迷宮
             </h1>
 
             <!-- Subtitle Description -->
             <p id="modal-desc" class="text-gray-300 text-sm md:text-base leading-relaxed mb-6 font-light">
-                1/2の二者択一を10回連続で当て続けろ！<br>
-                ゲートを進むたびに世界が変貌し、<br>
-                最終到達確率は <span class="text-cyan-300 font-bold font-orbitron">1 / 1,024</span>（0.098%）。
+                2分の1の運命選択を当て続けろ！<br>
+                どこまで連続で正解できるか限界に挑戦。<br>
+                迷宮を進むたびに、奇妙な世界があなたを待つ。
             </p>
 
-            <!-- Stats Box (Visible on Game Over / Clear) -->
+            <!-- Stats Box -->
             <div id="modal-stats" class="hidden mb-6 p-4 rounded-2xl bg-white/5 border border-white/10 text-left text-xs font-mono space-y-2">
                 <div class="flex justify-between">
-                    <span class="text-gray-400">到達ステージ:</span>
-                    <span id="stat-stage" class="text-cyan-300 font-bold">Stage 1</span>
+                    <span class="text-gray-400">今回連続成功:</span>
+                    <span id="stat-stage" class="text-cyan-300 font-bold">0 回</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-400">突破した確率:</span>
-                    <span id="stat-prob" class="text-yellow-300 font-bold">1 / 2</span>
+                    <span id="stat-prob" class="text-yellow-300 font-bold">1 / 1</span>
                 </div>
                 <div class="flex justify-between">
-                    <span class="text-gray-400">通算挑戦回数:</span>
-                    <span id="stat-attempts" class="text-white font-bold">1 回</span>
+                    <span class="text-gray-400">死因:</span>
+                    <span id="stat-cause" class="text-red-400 font-bold">崖下へ落下</span>
+                </div>
+                <div class="flex justify-between border-t border-white/10 pt-2">
+                    <span class="text-gray-400">最高記録:</span>
+                    <span id="stat-best" class="text-emerald-400 font-bold">0 回</span>
                 </div>
             </div>
 
@@ -208,152 +206,159 @@
 
     <script>
         // --- GAME CONFIGURATION & STATE ---
-        const TOTAL_STAGES = 10;
-        let currentStage = 0; // 0 to 9 (corresponds to stage 1 to 10)
+        let currentStage = 0; // 0, 1, 2, ...
+        let bestStreak = parseInt(localStorage.getItem('probability_labyrinth_best') || '0');
         let correctGate = 'blue'; // 'blue' or 'red'
         let isMoving = false;
-        let attemptCount = 0;
         let isSoundMuted = false;
         let audioInitialized = false;
+        let lastDeathCause = "崖下へ落下";
 
         // Stage Themes configuration
         const STAGE_THEMES = [
             {
-                name: "NEON CYBER CITY",
+                name: "青と赤の二分決断",
                 fogColor: 0x070b19,
                 bgColor: 0x030712,
                 blueGateColor: 0x00f0ff,
                 redGateColor: 0xff0055,
                 gridColor: 0x1e293b,
                 particlesColor: 0x38bdf8,
-                geometryType: 'cubes'
+                geometryType: 'cubes',
+                specialEffect: 'none'
             },
             {
-                name: "MATRIX DIGITAL GRID",
+                name: "鏡の世界 (MIRROR WORLD)",
+                fogColor: 0x101528,
+                bgColor: 0x080c18,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xe879f9,
+                gridColor: 0x475569,
+                particlesColor: 0xe2e8f0,
+                geometryType: 'octahedrons',
+                specialEffect: 'mirror'
+            },
+            {
+                name: "変な奴がいる異次元 (UNKNOWN ENTITY)",
+                fogColor: 0x1d0029,
+                bgColor: 0x0b0012,
+                blueGateColor: 0x00ffaa,
+                redGateColor: 0xff00aa,
+                gridColor: 0x581c87,
+                particlesColor: 0xa855f7,
+                geometryType: 'spheres',
+                specialEffect: 'creature'
+            },
+            {
+                name: "マトリックス・デジタル",
                 fogColor: 0x022c22,
                 bgColor: 0x021712,
                 blueGateColor: 0x00ff88,
                 redGateColor: 0xff3300,
                 gridColor: 0x065f46,
                 particlesColor: 0x34d399,
-                geometryType: 'pyramids'
+                geometryType: 'pyramids',
+                specialEffect: 'none'
             },
             {
-                name: "STELLAR NEBULA",
+                name: "ステラ・星雲空間",
                 fogColor: 0x18002e,
                 bgColor: 0x0a0014,
                 blueGateColor: 0x818cf8,
                 redGateColor: 0xf43f5e,
                 gridColor: 0x4c1d95,
                 particlesColor: 0xc084fc,
-                geometryType: 'spheres'
+                geometryType: 'spheres',
+                specialEffect: 'none'
             },
             {
-                name: "VOLCANIC CORE",
+                name: "ヴォルカニック・コア",
                 fogColor: 0x2e0800,
                 bgColor: 0x140300,
                 blueGateColor: 0x38bdf8,
                 redGateColor: 0xff4500,
                 gridColor: 0x7c2d12,
                 particlesColor: 0xfb923c,
-                geometryType: 'cubes'
+                geometryType: 'cubes',
+                specialEffect: 'none'
             },
             {
-                name: "CRYSTAL ICE REALM",
+                name: "クリスタル・氷結領域",
                 fogColor: 0x042f2e,
                 bgColor: 0x021e1d,
                 blueGateColor: 0x22d3ee,
                 redGateColor: 0xf472b6,
                 gridColor: 0x115e59,
                 particlesColor: 0x67e8f9,
-                geometryType: 'octahedrons'
+                geometryType: 'octahedrons',
+                specialEffect: 'none'
             },
             {
-                name: "SYNTHWAVE SUNSET",
+                name: "レトロ・シンスウェーブ",
                 fogColor: 0x310022,
                 bgColor: 0x15000e,
                 blueGateColor: 0x06b6d4,
                 redGateColor: 0xff007f,
                 gridColor: 0x831843,
                 particlesColor: 0xf472b6,
-                geometryType: 'pyramids'
+                geometryType: 'pyramids',
+                specialEffect: 'none'
             },
             {
-                name: "DEEP OCEAN ABYSS",
-                fogColor: 0x03182b,
-                bgColor: 0x010c17,
-                blueGateColor: 0x00d8ff,
-                redGateColor: 0xff3b3b,
-                gridColor: 0x0c4a6e,
-                particlesColor: 0x38bdf8,
-                geometryType: 'spheres'
-            },
-            {
-                name: "HYPER PSYCHEDELIC",
-                fogColor: 0x260033,
-                bgColor: 0x100017,
-                blueGateColor: 0x00ffcc,
-                redGateColor: 0xff00cc,
-                gridColor: 0x581c87,
-                particlesColor: 0xe879f9,
-                geometryType: 'octahedrons'
-            },
-            {
-                name: "GOLDEN SANCTUARY",
+                name: "黄金の聖域 (GOLD SANCTUARY)",
                 fogColor: 0x291d00,
                 bgColor: 0x120d00,
                 blueGateColor: 0x38bdf8,
                 redGateColor: 0xeab308,
                 gridColor: 0x713f12,
                 particlesColor: 0xfde047,
-                geometryType: 'pyramids'
+                geometryType: 'pyramids',
+                specialEffect: 'none'
             },
             {
-                name: "CHAOS SINGULARITY",
+                name: "カオス・ブラックホール",
                 fogColor: 0x1f0000,
                 bgColor: 0x0a0000,
                 blueGateColor: 0x00ffff,
                 redGateColor: 0xff0000,
                 gridColor: 0x7f1d1d,
                 particlesColor: 0xff8800,
-                geometryType: 'cubes'
+                geometryType: 'cubes',
+                specialEffect: 'creature'
             }
         ];
 
         // --- AUDIO SYNTHESIS (Tone.js) ---
-        let correctSynth, wrongSynth, warpSynth, winSynth;
+        let correctSynth, wrongSynth, warpSynth, roarSynth;
 
         function initAudio() {
             if (audioInitialized) return;
             try {
                 Tone.start();
                 
-                // Correct Sound (High Sine Bell Chime)
                 correctSynth = new Tone.PolySynth(Tone.Synth, {
                     oscillator: { type: "sine" },
                     envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
                 }).toDestination();
                 correctSynth.volume.value = -6;
 
-                // Wrong Sound (Distorted Low Square Synth)
                 wrongSynth = new Tone.Synth({
                     oscillator: { type: "sawtooth" },
-                    envelope: { attack: 0.01, decay: 0.4, sustain: 0, release: 0.2 }
+                    envelope: { attack: 0.01, decay: 0.6, sustain: 0, release: 0.3 }
                 }).toDestination();
-                wrongSynth.volume.value = -4;
+                wrongSynth.volume.value = -3;
 
-                // Warp Sound Effect (Pitch Sweep Filter)
                 warpSynth = new Tone.MonoSynth({
                     oscillator: { type: "sine" },
                     envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 0.8 }
                 }).toDestination();
                 warpSynth.volume.value = -10;
 
-                // Clear Fanfare Synth
-                winSynth = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: "triangle" }
+                roarSynth = new Tone.NoiseSynth({
+                    noise: { type: 'brown' },
+                    envelope: { attack: 0.01, decay: 0.8, sustain: 0.1, release: 0.5 }
                 }).toDestination();
-                winSynth.volume.value = -4;
+                roarSynth.volume.value = -2;
 
                 audioInitialized = true;
             } catch (e) {
@@ -368,11 +373,11 @@
                 if (type === 'correct') {
                     correctSynth.triggerAttackRelease(["E5", "B5", "E6"], "16n", now);
                 } else if (type === 'wrong') {
-                    wrongSynth.triggerAttackRelease("A2", "8n", now);
+                    wrongSynth.triggerAttackRelease("G1", "4n", now);
                 } else if (type === 'warp') {
                     warpSynth.triggerAttackRelease("C3", "4n", now);
-                } else if (type === 'win') {
-                    winSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "2n", now);
+                } else if (type === 'roar') {
+                    roarSynth.triggerAttackRelease("2n", now);
                 }
             } catch (e) {
                 // Ignore audio trigger errors
@@ -385,7 +390,7 @@
         scene.fog = new THREE.FogExp2(STAGE_THEMES[0].fogColor, 0.035);
 
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.6, 6); // Human eye-level height
+        camera.position.set(0, 1.6, 6);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -406,10 +411,15 @@
         redGateLight.position.set(2.5, 2, 0);
         scene.add(redGateLight);
 
-        // Floor Grid
+        // Floor Grid & Ceiling Grid (for mirror world)
         let gridHelper = new THREE.GridHelper(100, 50, 0x00f0ff, 0x1e293b);
         gridHelper.position.y = 0;
         scene.add(gridHelper);
+
+        let ceilingGridHelper = new THREE.GridHelper(100, 50, 0x00f0ff, 0x1e293b);
+        ceilingGridHelper.position.y = 12;
+        ceilingGridHelper.visible = false;
+        scene.add(ceilingGridHelper);
 
         // Floating Background Particles
         const particleCount = 200;
@@ -435,8 +445,44 @@
         scene.add(floatingGroup);
         let floatingMeshes = [];
 
+        // Special Weird Creature Group ("変な奴")
+        const creatureGroup = new THREE.Group();
+        creatureGroup.position.set(0, 3.5, -6);
+        scene.add(creatureGroup);
+        let creatureCoreMesh, creatureEyeMesh;
+
+        function buildWeirdCreature() {
+            while(creatureGroup.children.length > 0){ 
+                creatureGroup.remove(creatureGroup.children[0]); 
+            }
+            // Weird Pulsing Spiky Core
+            const coreGeom = new THREE.IcosahedronGeometry(1.4, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0xff00bb,
+                wireframe: true,
+                emissive: 0xaa00aa,
+                roughness: 0.1
+            });
+            creatureCoreMesh = new THREE.Mesh(coreGeom, coreMat);
+            creatureGroup.add(creatureCoreMesh);
+
+            // Eyeball in center
+            const eyeGeom = new THREE.SphereGeometry(0.6, 16, 16);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            creatureEyeMesh = new THREE.Mesh(eyeGeom, eyeMat);
+
+            const pupilGeom = new THREE.SphereGeometry(0.25, 16, 16);
+            const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const pupil = new THREE.Mesh(pupilGeom, pupilMat);
+            pupil.position.z = 0.5;
+            creatureEyeMesh.add(pupil);
+
+            creatureGroup.add(creatureEyeMesh);
+        }
+        buildWeirdCreature();
+        creatureGroup.visible = false;
+
         function createFloatingEnvironment(type) {
-            // Clear existing
             floatingMeshes.forEach(mesh => floatingGroup.remove(mesh));
             floatingMeshes = [];
 
@@ -470,7 +516,6 @@
         function createGateMesh(glowColorHex) {
             const group = new THREE.Group();
 
-            // Outer Arch Pillar Frame
             const archShape = new THREE.BoxGeometry(0.4, 4.5, 0.4);
             const topArchShape = new THREE.BoxGeometry(3.2, 0.4, 0.4);
 
@@ -491,7 +536,7 @@
 
             group.add(leftPillar, rightPillar, topBar);
 
-            // Inner Portal Surface (Emissive Glow)
+            // Portal Glow Surface
             const portalGeom = new THREE.PlaneGeometry(2.4, 4.1);
             const portalMat = new THREE.MeshBasicMaterial({
                 color: glowColorHex,
@@ -503,7 +548,7 @@
             portalPlane.position.set(0, 2.1, 0);
             group.add(portalPlane);
 
-            // Neon Outline Edges
+            // Neon Edges
             const borderGeom = new THREE.BoxGeometry(2.6, 4.3, 0.1);
             const borderEdges = new THREE.EdgesGeometry(borderGeom);
             const borderMat = new THREE.LineBasicMaterial({ color: glowColorHex, linewidth: 2 });
@@ -526,15 +571,14 @@
 
         // --- GAME LOGIC & RANDOMIZATION ---
         function randomizeGate() {
-            // Pick 'blue' or 'red' uniformly at random (50/50)
             correctGate = Math.random() < 0.5 ? 'blue' : 'red';
             console.log(`[Stage ${currentStage + 1}] Correct gate: ${correctGate.toUpperCase()}`);
         }
 
         function updateStageVisuals(stageIdx) {
-            const theme = STAGE_THEMES[stageIdx];
+            const theme = STAGE_THEMES[stageIdx % STAGE_THEMES.length];
 
-            // Background & Fog Color Transition
+            // Background & Fog
             scene.fog.color.setHex(theme.fogColor);
             renderer.setClearColor(theme.bgColor);
 
@@ -547,41 +591,56 @@
             rightGateObj.borderMat.color.setHex(theme.redGateColor);
             redGateLight.color.setHex(theme.redGateColor);
 
-            // Grid & Particle colors
+            // Particles
             particleMaterial.color.setHex(theme.particlesColor);
             
-            // Re-create Grid with theme colors
+            // Grid Update
             scene.remove(gridHelper);
             gridHelper = new THREE.GridHelper(100, 50, theme.blueGateColor, theme.gridColor);
             gridHelper.position.y = 0;
             scene.add(gridHelper);
 
-            // Re-create floating geometries
+            // Reset Grid position in case of previous death animation
+            gridHelper.position.x = 0;
+
+            // Mirror World Ceiling Grid
+            if (theme.specialEffect === 'mirror') {
+                ceilingGridHelper.visible = true;
+                ceilingGridHelper.material.color.setHex(theme.redGateColor);
+            } else {
+                ceilingGridHelper.visible = false;
+            }
+
+            // Creature World
+            creatureGroup.visible = (theme.specialEffect === 'creature');
+            creatureGroup.position.set(0, 3.5, -6);
+            creatureGroup.scale.set(1, 1, 1);
+
+            // Floating Geometries
             createFloatingEnvironment(theme.geometryType);
 
-            // Update UI HUD text
-            document.getElementById('stage-title-hud').innerText = `STAGE ${stageIdx + 1} / ${TOTAL_STAGES} - ${theme.name}`;
-            
-            // Update Step Dots HUD
-            const dots = document.querySelectorAll('.step-dot');
-            dots.forEach((dot, index) => {
-                if (index <= stageIdx) {
-                    dot.className = "step-dot w-full h-2 rounded-full transition-all duration-500 bg-cyan-400 shadow-[0_0_8px_#22d3ee]";
-                } else {
-                    dot.className = "step-dot w-full h-2 rounded-full transition-all duration-500 bg-gray-700";
-                }
-            });
+            // UI HUD Update
+            document.getElementById('stage-title-hud').innerText = `STAGE ${stageIdx + 1} - ${theme.name}`;
+            document.getElementById('current-streak-val').innerText = `${stageIdx} 回`;
+            document.getElementById('best-streak-val').innerText = `${bestStreak} 回`;
 
-            // Update Probability Counter
-            const denominator = Math.pow(2, stageIdx + 1);
-            const percent = (100 / denominator).toFixed(stageIdx >= 6 ? 4 : 3);
+            // Probability Calculation: 1 / 2^(stageIdx + 1)
+            const denominatorBig = Math.pow(2, stageIdx + 1);
+            let displayDenom = denominatorBig.toLocaleString();
+            let displayPercent = (100 / denominatorBig);
+
+            if (stageIdx >= 30) {
+                displayDenom = "2^" + (stageIdx + 1);
+                displayPercent = "0.0000...%";
+            } else {
+                displayPercent = displayPercent.toFixed(Math.min(stageIdx + 3, 8)) + "%";
+            }
             
-            document.getElementById('prob-denominator').innerText = denominator.toLocaleString();
-            document.getElementById('prob-percent').innerText = `${percent}%`;
-            document.getElementById('streak-count').innerText = `${stageIdx + 1} / ${TOTAL_STAGES}`;
+            document.getElementById('prob-denominator').innerText = displayDenom;
+            document.getElementById('prob-percent').innerText = displayPercent;
         }
 
-        // --- GATE CHOICE ACTION ---
+        // --- GATE CHOICE ACTION & CAMERA MOTIONS ---
         function selectGate(chosenColor) {
             if (isMoving) return;
             isMoving = true;
@@ -590,7 +649,6 @@
             const isCorrect = (chosenColor === correctGate);
             const targetX = chosenColor === 'blue' ? -2.5 : 2.5;
 
-            // Camera Move Animation towards chosen gate
             let startTime = performance.now();
             const startCameraX = camera.position.x;
             const startCameraZ = camera.position.z;
@@ -602,7 +660,6 @@
                 const duration = 0.8;
                 const progress = Math.min(elapsed / duration, 1);
 
-                // Smooth Quad Easing
                 const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
 
                 camera.position.x = startCameraX + (targetX - startCameraX) * ease;
@@ -611,39 +668,114 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateCamera);
                 } else {
-                    // Reached the gate
-                    handleGateOutcome(isCorrect);
+                    handleGateOutcome(isCorrect, chosenColor);
                 }
             }
 
             requestAnimationFrame(animateCamera);
         }
 
-        function handleGateOutcome(isCorrect) {
+        function handleGateOutcome(isCorrect, chosenColor) {
             if (isCorrect) {
                 playSound('correct');
-                if (currentStage + 1 >= TOTAL_STAGES) {
-                    // GAME CLEAR (1/1024 Reached!)
-                    showGameEndModal(true);
-                } else {
-                    // Advance Stage
-                    currentStage++;
-                    randomizeGate();
-                    updateStageVisuals(currentStage);
-
-                    // Reset Camera Position with Warp Effect
-                    camera.position.set(0, 1.6, 6);
-                    isMoving = false;
+                currentStage++;
+                
+                // Update Best Streak
+                if (currentStage > bestStreak) {
+                    bestStreak = currentStage;
+                    localStorage.setItem('probability_labyrinth_best', bestStreak.toString());
                 }
+
+                randomizeGate();
+                updateStageVisuals(currentStage);
+
+                // Reset Camera Position
+                camera.position.set(0, 1.6, 6);
+                camera.rotation.set(0, 0, 0);
+                camera.fov = 65;
+                camera.updateProjectionMatrix();
+                isMoving = false;
             } else {
-                // GAME OVER (Wrong Choice)
-                playSound('wrong');
-                // Flash Red overlay
-                renderer.setClearColor(0xff0033);
-                setTimeout(() => {
-                    showGameEndModal(false);
-                }, 400);
+                // GAME OVER - DYNAMIC DEATH ANIMATIONS
+                triggerDeathAnimation(chosenColor);
             }
+        }
+
+        // --- DYNAMIC DEATH ANIMATION SYSTEM ---
+        function triggerDeathAnimation(chosenColor) {
+            playSound('wrong');
+            const theme = STAGE_THEMES[currentStage % STAGE_THEMES.length];
+            
+            // Choose death style based on stage or random selection
+            let deathTypes = ['fall', 'fissure', 'crush', 'laser'];
+            if (theme.specialEffect === 'creature') {
+                deathTypes.push('eat', 'eat'); // Higher chance to get eaten when creature exists
+            }
+
+            const deathType = deathTypes[Math.floor(Math.random() * deathTypes.length)];
+            let deathDuration = 1.2;
+
+            let startTime = performance.now();
+
+            if (deathType === 'fall') {
+                lastDeathCause = "底なしの崖へ落下";
+            } else if (deathType === 'eat') {
+                lastDeathCause = "謎の変な奴に捕食された";
+                playSound('roar');
+                creatureGroup.visible = true;
+            } else if (deathType === 'fissure') {
+                lastDeathCause = "次元の裂け目に飲まれた";
+            } else if (deathType === 'crush') {
+                lastDeathCause = "空間圧縮により粉砕";
+            } else {
+                lastDeathCause = "トラップレーザーにより消滅";
+            }
+
+            function playDeathFrame(now) {
+                const elapsed = (now - startTime) / 1000;
+                const progress = Math.min(elapsed / deathDuration, 1);
+
+                if (deathType === 'fall') {
+                    // Camera plunges downward with tilt
+                    camera.position.y = 1.6 - (progress * progress * 20);
+                    camera.rotation.x = -progress * 1.2;
+                    camera.rotation.z = progress * 0.5;
+                } 
+                else if (deathType === 'eat') {
+                    // Creature rapidly grows and devours camera
+                    creatureGroup.position.set(camera.position.x, 1.6, camera.position.z - (1 - progress) * 5);
+                    const scale = 1 + progress * 8;
+                    creatureGroup.scale.set(scale, scale, scale);
+                    camera.rotation.z = (Math.random() - 0.5) * 0.2;
+                } 
+                else if (deathType === 'fissure') {
+                    // Floor splits & screen shakes violently
+                    gridHelper.position.x = (progress * 10) * (chosenColor === 'blue' ? -1 : 1);
+                    camera.position.y = 1.6 - progress * 10;
+                    camera.position.x += (Math.random() - 0.5) * 0.4;
+                    camera.position.z += (Math.random() - 0.5) * 0.4;
+                } 
+                else if (deathType === 'crush') {
+                    // Lens warp distortion and spiral camera
+                    camera.fov = 65 + progress * 80;
+                    camera.updateProjectionMatrix();
+                    camera.rotation.z = progress * Math.PI * 2;
+                }
+                else { // Laser
+                    renderer.setClearColor(0xff0033);
+                    camera.position.z += (Math.random() - 0.5) * 0.3;
+                    camera.position.y += (Math.random() - 0.5) * 0.3;
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(playDeathFrame);
+                } else {
+                    renderer.setClearColor(0x000000);
+                    showGameEndModal(false);
+                }
+            }
+
+            requestAnimationFrame(playDeathFrame);
         }
 
         // --- MODAL & UI HANDLERS ---
@@ -655,29 +787,29 @@
 
         const iconStart = document.getElementById('modal-icon-start');
         const iconFail = document.getElementById('modal-icon-fail');
-        const iconClear = document.getElementById('modal-icon-clear');
 
-        function showGameEndModal(isWin) {
+        function showGameEndModal(isStart) {
             modalOverlay.classList.remove('opacity-0', 'pointer-events-none');
-            modalStats.classList.remove('hidden');
-
-            // Set Stats
-            document.getElementById('stat-stage').innerText = `Stage ${currentStage + 1} / ${TOTAL_STAGES}`;
-            document.getElementById('stat-prob').innerText = `1 / ${Math.pow(2, currentStage + (isWin ? 1 : 0)).toLocaleString()}`;
-            document.getElementById('stat-attempts').innerText = `${attemptCount} 回`;
-
+            
             iconStart.classList.add('hidden');
             iconFail.classList.add('hidden');
-            iconClear.classList.add('hidden');
 
-            if (isWin) {
-                playSound('win');
-                modalTitle.innerText = "MIRACLE CLEARED!";
-                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-white glow-gold";
-                modalDesc.innerHTML = `おめでとうございます！<br>確率 <span class="text-yellow-300 font-bold font-orbitron">1 / 1,024</span> (0.0977%) の奇跡を達成しました！`;
-                iconClear.classList.remove('hidden');
-                modalActionBtn.innerText = "TRY AGAIN FOR MIRACLE";
+            if (isStart) {
+                modalStats.classList.add('hidden');
+                modalTitle.innerText = "確率の迷宮";
+                modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300";
+                modalDesc.innerHTML = `2分の1の選択を当て続けろ！<br>どこまで連続正解できるか限界に挑戦。<br>進むたびに変形する怪しい世界を突き進め。`;
+                iconStart.classList.remove('hidden');
+                modalActionBtn.innerText = "CHALLENGE START";
             } else {
+                modalStats.classList.remove('hidden');
+                document.getElementById('stat-stage').innerText = `${currentStage} 回連続成功`;
+                
+                const denom = Math.pow(2, currentStage).toLocaleString();
+                document.getElementById('stat-prob').innerText = `1 / ${denom}`;
+                document.getElementById('stat-cause').innerText = lastDeathCause;
+                document.getElementById('stat-best').innerText = `${bestStreak} 回連続成功`;
+
                 modalTitle.innerText = "PROBABILITY FAILED";
                 modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-300 to-white glow-red";
                 modalDesc.innerHTML = `<span class="text-red-400 font-bold">ハズレのゲートを選択しました。</span><br>確率の壁に阻まれました。もう一度挑戦しますか？`;
@@ -687,19 +819,22 @@
         }
 
         function startNewGame() {
-            attemptCount++;
             currentStage = 0;
             isMoving = false;
+
+            // Reset camera state
             camera.position.set(0, 1.6, 6);
+            camera.rotation.set(0, 0, 0);
+            camera.fov = 65;
+            camera.updateProjectionMatrix();
 
             randomizeGate();
             updateStageVisuals(0);
 
-            // Hide Modal
             modalOverlay.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // Event Listeners for Game Controls
+        // Event Listeners
         document.getElementById('modal-action-btn').addEventListener('click', () => {
             initAudio();
             startNewGame();
@@ -708,7 +843,6 @@
         document.getElementById('left-touch-zone').addEventListener('click', () => selectGate('blue'));
         document.getElementById('right-touch-zone').addEventListener('click', () => selectGate('red'));
 
-        // Keyboard Controls
         window.addEventListener('keydown', (e) => {
             if (modalOverlay.classList.contains('pointer-events-none')) {
                 if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
@@ -721,7 +855,6 @@
             }
         });
 
-        // Sound Toggle Button
         document.getElementById('sound-btn').addEventListener('click', () => {
             initAudio();
             isSoundMuted = !isSoundMuted;
@@ -729,7 +862,6 @@
             document.getElementById('sound-icon-off').classList.toggle('hidden', !isSoundMuted);
         });
 
-        // Window Resize Handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -742,17 +874,29 @@
 
             const t = time * 0.001;
 
-            // Idle Gate animations (subtle bobbing and pulsing)
+            // Idle Gate Animation
             leftGateObj.group.position.y = Math.sin(t * 2) * 0.08;
             rightGateObj.group.position.y = Math.sin(t * 2 + 1) * 0.08;
 
-            // Rotate floating background meshes
+            // Creature Animation (If visible)
+            if (creatureGroup.visible) {
+                creatureGroup.position.y = 3.5 + Math.sin(t * 3) * 0.3;
+                if (creatureCoreMesh) {
+                    creatureCoreMesh.rotation.x = t * 1.5;
+                    creatureCoreMesh.rotation.y = t * 2.0;
+                }
+                if (creatureEyeMesh) {
+                    creatureEyeMesh.lookAt(camera.position);
+                }
+            }
+
+            // Floating background meshes
             floatingMeshes.forEach((mesh, idx) => {
                 mesh.rotation.x += 0.005 * (idx % 2 === 0 ? 1 : -1);
                 mesh.rotation.y += 0.008;
             });
 
-            // Particle Slow Drift
+            // Particles Drift
             const positions = particleGeometry.attributes.position.array;
             for (let i = 1; i < particleCount * 3; i += 3) {
                 positions[i] -= 0.02;
@@ -763,10 +907,11 @@
             renderer.render(scene, camera);
         }
 
-        // Initialize First View
         window.onload = function() {
+            document.getElementById('best-streak-val').innerText = `${bestStreak} 回`;
             randomizeGate();
             updateStageVisuals(0);
+            showGameEndModal(true);
             animate(0);
         };
     </script>
