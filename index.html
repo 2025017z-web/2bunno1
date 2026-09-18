@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>確率の迷宮 ver.1.4</title>
+    <title>確率の迷宮 ver.1.4 (Fast Mode Edition)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js -->
@@ -31,6 +31,12 @@
         }
         .glow-red {
             text-shadow: 0 0 10px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+        .glow-gold {
+            text-shadow: 0 0 12px rgba(234, 179, 8, 0.9), 0 0 25px rgba(234, 179, 8, 0.6);
+        }
+        .glow-purple {
+            text-shadow: 0 0 12px rgba(168, 85, 247, 0.9), 0 0 25px rgba(168, 85, 247, 0.6);
         }
         .box-glow-blue {
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(59, 130, 246, 0.3);
@@ -66,7 +72,7 @@
     <!-- 3D Canvas Container -->
     <div id="canvas-container" class="absolute inset-0 z-0"></div>
 
-    <!-- HUD Header: Title, Timer, Fast Mode & Sound Toggle -->
+    <!-- HUD Header: Title, Timer & Sound Toggle -->
     <div class="absolute top-0 left-0 right-0 z-10 p-3 md:p-6 flex justify-between items-center pointer-events-none">
         <!-- Stage Title -->
         <div class="pointer-events-auto flex items-center gap-2 md:gap-3">
@@ -78,14 +84,8 @@
             </div>
         </div>
 
-        <!-- Timer, Fast Mode Toggle & Sound Toggle -->
+        <!-- Play Time & Sound Toggle -->
         <div class="pointer-events-auto flex items-center gap-2">
-            <!-- Fast Mode Button -->
-            <button id="fast-mode-btn" class="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-2xl hover:bg-white/10 transition-all flex items-center gap-1.5 font-orbitron text-xs text-yellow-400 font-bold border border-yellow-500/30">
-                <span>⚡</span>
-                <span id="fast-mode-text">FAST: OFF</span>
-            </button>
-
             <!-- Timer Box -->
             <div class="glass-panel px-3 py-1.5 md:px-4 md:py-2 rounded-2xl flex items-center gap-2 font-mono text-xs md:text-sm">
                 <svg class="w-4 h-4 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,8 +178,8 @@
     </div>
 
     <!-- Start / Result / Ranking Overlay Modal -->
-    <div id="modal-overlay" class="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300">
-        <div id="modal-card" class="glass-panel max-w-lg w-full rounded-3xl p-5 md:p-7 text-center relative border border-white/20 shadow-2xl transform transition-all duration-300 scale-100 max-h-[92vh] overflow-y-auto">
+    <div id="modal-overlay" class="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-500">
+        <div id="modal-card" class="glass-panel max-w-lg w-full rounded-3xl p-5 md:p-7 text-center relative border border-white/20 shadow-2xl transform transition-all duration-500 scale-100 max-h-[92vh] overflow-y-auto">
             
             <!-- Modal Tab Controls (Game / Ranking) -->
             <div class="flex justify-center gap-2 mb-4 p-1 bg-white/5 rounded-2xl border border-white/10">
@@ -212,8 +212,23 @@
                 <p id="modal-desc" class="text-gray-300 text-xs md:text-sm leading-relaxed mb-4 font-light">
                     1/2の運命選択を当て続けろ！<br>
                     連続成功で<b>テンポUP＆トランスBGMが進化！</b><br>
-                    右上の <b>⚡ FAST</b> をオンにすると演出カットで爆速プレイ可能！
+                    街・砂漠・平原・深海...未知のロケーションを駆け抜けろ！
                 </p>
+
+                <!-- NEW: FAST MODE SWITCH IN HOME SCREEN -->
+                <div class="mb-4 p-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-between text-left">
+                    <div>
+                        <div class="text-xs font-bold text-yellow-300 flex items-center gap-1 font-orbitron">
+                            <span>⚡ 爆速 FAST MODE</span>
+                            <span class="text-[10px] bg-yellow-400/20 text-yellow-200 px-1.5 py-0.5 rounded">ドパガキ向け</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400">移動・死亡演出を全カット！爆速で連打プレイ可能</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="fast-mode-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-yellow-400 peer-checked:to-orange-500"></div>
+                    </label>
+                </div>
 
                 <!-- Stats Box -->
                 <div id="modal-stats" class="hidden mb-4 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-left text-xs font-mono space-y-1.5">
@@ -276,7 +291,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Setup
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'probability-warp-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
@@ -411,8 +425,8 @@
         let isSoundMuted = false;
         let audioInitialized = false;
         let lastDeathCause = "崖下へ落下";
-
-        // FAST MODE (Dopamine Fast Play Toggle)
+        
+        // FAST MODE STATE (Saved in localStorage)
         let isFastMode = localStorage.getItem('probability_fast_mode') === 'true';
 
         // Timer Variables
@@ -426,40 +440,153 @@
 
         // --- EXPANDED LOCATION STAGE THEMES ---
         const STAGE_THEMES = [
-            { name: "青と赤の二分決断", locationType: "サイバー空間", fogColor: 0x070b19, bgColor: 0x030712, blueGateColor: 0x00f0ff, redGateColor: 0xff0055, gridColor: 0x1e293b, particlesColor: 0x38bdf8, envType: 'cubes', specialEffect: 'none' },
-            { name: "摩天楼ネオン・シティ", locationType: "ハイテク都市", fogColor: 0x0f172a, bgColor: 0x020617, blueGateColor: 0x38bdf8, redGateColor: 0xf43f5e, gridColor: 0x334155, particlesColor: 0x38bdf8, envType: 'city', specialEffect: 'none' },
-            { name: "果てしなきネオン砂漠", locationType: "電脳砂漠", fogColor: 0x271a0c, bgColor: 0x120a03, blueGateColor: 0x22d3ee, redGateColor: 0xf97316, gridColor: 0x78350f, particlesColor: 0xfde047, envType: 'desert', specialEffect: 'none' },
-            { name: "サンセット・草原回廊", locationType: "黄昏の平原", fogColor: 0x2a0813, bgColor: 0x140308, blueGateColor: 0x38bdf8, redGateColor: 0xf43f5e, gridColor: 0x831843, particlesColor: 0xfbcfe8, envType: 'meadow', specialEffect: 'none' },
-            { name: "変な奴がいる異次元", locationType: "未知の次元", fogColor: 0x1d0029, bgColor: 0x0b0012, blueGateColor: 0x00ffaa, redGateColor: 0xff00aa, gridColor: 0x581c87, particlesColor: 0xa855f7, envType: 'spheres', specialEffect: 'creature' },
-            { name: "クリスタル・氷結連峰", locationType: "氷結地帯", fogColor: 0x042f2e, bgColor: 0x021e1d, blueGateColor: 0x22d3ee, redGateColor: 0xf472b6, gridColor: 0x115e59, particlesColor: 0x67e8f9, envType: 'crystals', specialEffect: 'none' },
-            { name: "ディープ・アビス深海", locationType: "深海エリア", fogColor: 0x031b29, bgColor: 0x010c14, blueGateColor: 0x00f0ff, redGateColor: 0xec4899, gridColor: 0x075985, particlesColor: 0x38bdf8, envType: 'underwater', specialEffect: 'none' },
-            { name: "ヴォルカニック・コア", locationType: "溶岩火山", fogColor: 0x2e0800, bgColor: 0x140300, blueGateColor: 0x38bdf8, redGateColor: 0xff4500, gridColor: 0x7c2d12, particlesColor: 0xfb923c, envType: 'volcano', specialEffect: 'none' },
-            { name: "鏡の世界 (MIRROR WORLD)", locationType: "反転空間", fogColor: 0x101528, bgColor: 0x080c18, blueGateColor: 0x38bdf8, redGateColor: 0xe879f9, gridColor: 0x475569, particlesColor: 0xe2e8f0, envType: 'octahedrons', specialEffect: 'mirror' },
-            { name: "朱塗りの鳥居・幻想領域", locationType: "和風・異空間", fogColor: 0x2a0000, bgColor: 0x120000, blueGateColor: 0x38bdf8, redGateColor: 0xd97706, gridColor: 0x991b1b, particlesColor: 0xfef08a, envType: 'torii', specialEffect: 'none' },
-            { name: "黄金のパルテノン聖域", locationType: "黄金神殿", fogColor: 0x291d00, bgColor: 0x120d00, blueGateColor: 0x38bdf8, redGateColor: 0xeab308, gridColor: 0x713f12, particlesColor: 0xfde047, envType: 'pyramids', specialEffect: 'none' },
-            { name: "カオス・ブラックホール", locationType: "銀河最果て", fogColor: 0x1f0000, bgColor: 0x0a0000, blueGateColor: 0x00ffff, redGateColor: 0xff0000, gridColor: 0x7f1d1d, particlesColor: 0xff8800, envType: 'cubes', specialEffect: 'creature' }
+            {
+                name: "青と赤の二分決断",
+                locationType: "サイバー空間",
+                fogColor: 0x070b19,
+                bgColor: 0x030712,
+                blueGateColor: 0x00f0ff,
+                redGateColor: 0xff0055,
+                gridColor: 0x1e293b,
+                particlesColor: 0x38bdf8,
+                envType: 'cubes',
+                specialEffect: 'none'
+            },
+            {
+                name: "摩天楼ネオン・シティ",
+                locationType: "ハイテク都市",
+                fogColor: 0x0f172a,
+                bgColor: 0x020617,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xf43f5e,
+                gridColor: 0x334155,
+                particlesColor: 0x38bdf8,
+                envType: 'city',
+                specialEffect: 'none'
+            },
+            {
+                name: "果てしなきネオン砂漠",
+                locationType: "電脳砂漠",
+                fogColor: 0x271a0c,
+                bgColor: 0x120a03,
+                blueGateColor: 0x22d3ee,
+                redGateColor: 0xf97316,
+                gridColor: 0x78350f,
+                particlesColor: 0xfde047,
+                envType: 'desert',
+                specialEffect: 'none'
+            },
+            {
+                name: "サンセット・草原回廊",
+                locationType: "黄昏の平原",
+                fogColor: 0x2a0813,
+                bgColor: 0x140308,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xf43f5e,
+                gridColor: 0x831843,
+                particlesColor: 0xfbcfe8,
+                envType: 'meadow',
+                specialEffect: 'none'
+            },
+            {
+                name: "変な奴がいる異次元",
+                locationType: "未知の次元",
+                fogColor: 0x1d0029,
+                bgColor: 0x0b0012,
+                blueGateColor: 0x00ffaa,
+                redGateColor: 0xff00aa,
+                gridColor: 0x581c87,
+                particlesColor: 0xa855f7,
+                envType: 'spheres',
+                specialEffect: 'creature'
+            },
+            {
+                name: "クリスタル・氷結連峰",
+                locationType: "氷結地帯",
+                fogColor: 0x042f2e,
+                bgColor: 0x021e1d,
+                blueGateColor: 0x22d3ee,
+                redGateColor: 0xf472b6,
+                gridColor: 0x115e59,
+                particlesColor: 0x67e8f9,
+                envType: 'crystals',
+                specialEffect: 'none'
+            },
+            {
+                name: "ディープ・アビス深海",
+                locationType: "深海エリア",
+                fogColor: 0x031b29,
+                bgColor: 0x010c14,
+                blueGateColor: 0x00f0ff,
+                redGateColor: 0xec4899,
+                gridColor: 0x075985,
+                particlesColor: 0x38bdf8,
+                envType: 'underwater',
+                specialEffect: 'none'
+            },
+            {
+                name: "ヴォルカニック・コア",
+                locationType: "溶岩火山",
+                fogColor: 0x2e0800,
+                bgColor: 0x140300,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xff4500,
+                gridColor: 0x7c2d12,
+                particlesColor: 0xfb923c,
+                envType: 'volcano',
+                specialEffect: 'none'
+            },
+            {
+                name: "鏡の世界 (MIRROR WORLD)",
+                locationType: "反転空間",
+                fogColor: 0x101528,
+                bgColor: 0x080c18,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xe879f9,
+                gridColor: 0x475569,
+                particlesColor: 0xe2e8f0,
+                envType: 'octahedrons',
+                specialEffect: 'mirror'
+            },
+            {
+                name: "朱塗りの鳥居・幻想領域",
+                locationType: "和風・異空間",
+                fogColor: 0x2a0000,
+                bgColor: 0x120000,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xd97706,
+                gridColor: 0x991b1b,
+                particlesColor: 0xfef08a,
+                envType: 'torii',
+                specialEffect: 'none'
+            },
+            {
+                name: "黄金のパルテノン聖域",
+                locationType: "黄金神殿",
+                fogColor: 0x291d00,
+                bgColor: 0x120d00,
+                blueGateColor: 0x38bdf8,
+                redGateColor: 0xeab308,
+                gridColor: 0x713f12,
+                particlesColor: 0xfde047,
+                envType: 'pyramids',
+                specialEffect: 'none'
+            },
+            {
+                name: "カオス・ブラックホール",
+                locationType: "銀河最果て",
+                fogColor: 0x1f0000,
+                bgColor: 0x0a0000,
+                blueGateColor: 0x00ffff,
+                redGateColor: 0xff0000,
+                gridColor: 0x7f1d1d,
+                particlesColor: 0xff8800,
+                envType: 'cubes',
+                specialEffect: 'creature'
+            }
         ];
 
-        // --- FAST MODE UI INITIALIZATION ---
-        function updateFastModeUI() {
-            const btn = document.getElementById('fast-mode-btn');
-            const text = document.getElementById('fast-mode-text');
-            if (isFastMode) {
-                btn.classList.add('bg-yellow-500/30', 'border-yellow-400', 'shadow-[0_0_10px_rgba(234,179,8,0.5)]');
-                text.innerText = "FAST: ON";
-            } else {
-                btn.classList.remove('bg-yellow-500/30', 'border-yellow-400', 'shadow-[0_0_10px_rgba(234,179,8,0.5)]');
-                text.innerText = "FAST: OFF";
-            }
-        }
-
-        document.getElementById('fast-mode-btn').addEventListener('click', () => {
-            isFastMode = !isFastMode;
-            localStorage.setItem('probability_fast_mode', isFastMode.toString());
-            updateFastModeUI();
-        });
-
-        // --- ADAPTIVE DOPAMINE SOUND SYSTEM (Tone.js) ---
+        // --- ADAPTIVE SOUND SYSTEM ---
         let synthBass, synthArp, synthLead, drumKick, drumHiHat, wrongSynth, warpSynth, roarSynth;
         let currentBgmLevel = 0;
 
@@ -493,7 +620,10 @@
                 drumHiHat = new Tone.MetalSynth({
                     frequency: 200,
                     envelope: { attack: 0.001, decay: 0.05, release: 0.05 },
-                    harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5
+                    harmonicity: 5.1,
+                    modulationIndex: 32,
+                    resonance: 4000,
+                    octaves: 1.5
                 }).toDestination();
                 drumHiHat.volume.value = -22;
 
@@ -516,7 +646,6 @@
                 roarSynth.volume.value = -2;
 
                 setupBgmLoop();
-
                 Tone.Transport.bpm.value = 124;
                 Tone.Transport.start();
 
@@ -535,7 +664,6 @@
 
             Tone.Transport.scheduleRepeat((time) => {
                 if (isSoundMuted) return;
-
                 const stage = currentStage;
                 if (step % 2 === 0) {
                     synthBass.triggerAttackRelease(notesBass[Math.floor(step / 2) % notesBass.length], "8n", time);
@@ -553,7 +681,6 @@
                 if (stage >= 11) {
                     synthArp.triggerAttackRelease(notesArp[(step * 2) % notesArp.length], "32n", time + 0.05);
                 }
-
                 step = (step + 1) % 16;
             }, "16n");
         }
@@ -579,9 +706,7 @@
                 const now = Tone.now();
                 if (type === 'correct') {
                     const leadNotes = ["C5", "E5", "G5", "C6"];
-                    leadNotes.forEach((note, i) => {
-                        synthLead.triggerAttackRelease(note, "16n", now + i * 0.05);
-                    });
+                    leadNotes.forEach((note, i) => synthLead.triggerAttackRelease(note, "16n", now + i * 0.05));
                 } else if (type === 'wrong') {
                     wrongSynth.triggerAttackRelease("F1", "4n", now);
                 } else if (type === 'warp') {
@@ -637,10 +762,7 @@
         }
         particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
         const particleMaterial = new THREE.PointsMaterial({
-            color: 0x38bdf8,
-            size: 0.15,
-            transparent: true,
-            opacity: 0.8
+            color: 0x38bdf8, size: 0.15, transparent: true, opacity: 0.8
         });
         const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
         scene.add(particleSystem);
@@ -657,9 +779,7 @@
         function buildWeirdCreature() {
             while(creatureGroup.children.length > 0){ creatureGroup.remove(creatureGroup.children[0]); }
             const coreGeom = new THREE.IcosahedronGeometry(1.4, 1);
-            const coreMat = new THREE.MeshStandardMaterial({
-                color: 0xff00bb, wireframe: true, emissive: 0xaa00aa, roughness: 0.1
-            });
+            const coreMat = new THREE.MeshStandardMaterial({ color: 0xff00bb, wireframe: true, emissive: 0xaa00aa, roughness: 0.1 });
             creatureCoreMesh = new THREE.Mesh(coreGeom, coreMat);
             creatureGroup.add(creatureCoreMesh);
 
@@ -672,7 +792,6 @@
             const pupil = new THREE.Mesh(pupilGeom, pupilMat);
             pupil.position.z = 0.5;
             creatureEyeMesh.add(pupil);
-
             creatureGroup.add(creatureEyeMesh);
         }
         buildWeirdCreature();
@@ -687,92 +806,65 @@
             if (type === 'city') {
                 for (let i = 0; i < 30; i++) {
                     const h = Math.random() * 15 + 5;
-                    const geom = new THREE.BoxGeometry(2, h, 2);
-                    const mesh = new THREE.Mesh(geom, matWire);
-                    const x = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 12 + 5);
-                    const z = (Math.random() - 0.5) * 40 - 5;
-                    mesh.position.set(x, h / 2, z);
-                    environmentGroup.add(mesh);
-                    environmentMeshes.push(mesh);
+                    const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, h, 2), matWire);
+                    mesh.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 12 + 5), h / 2, (Math.random() - 0.5) * 40 - 5);
+                    environmentGroup.add(mesh); environmentMeshes.push(mesh);
                 }
             } else if (type === 'desert' || type === 'pyramids') {
                 for (let i = 0; i < 12; i++) {
                     const size = Math.random() * 8 + 4;
-                    const geom = new THREE.ConeGeometry(size, size, 4);
-                    const mesh = new THREE.Mesh(geom, matWire);
-                    const x = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 16 + 6);
-                    const z = (Math.random() - 0.5) * 50 - 5;
-                    mesh.position.set(x, size / 2, z);
-                    environmentGroup.add(mesh);
-                    environmentMeshes.push(mesh);
+                    const mesh = new THREE.Mesh(new THREE.ConeGeometry(size, size, 4), matWire);
+                    mesh.position.set((Math.random() > 0.5 ? 1 : -1) * (Math.random() * 16 + 6), size / 2, (Math.random() - 0.5) * 50 - 5);
+                    environmentGroup.add(mesh); environmentMeshes.push(mesh);
                 }
             } else if (type === 'meadow') {
                 for (let i = 0; i < 20; i++) {
-                    const geom = new THREE.DodecahedronGeometry(Math.random() * 2 + 1);
-                    const mesh = new THREE.Mesh(geom, matWire);
+                    const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(Math.random() * 2 + 1), matWire);
                     mesh.position.set((Math.random() - 0.5) * 35, Math.random() * 8 + 1, (Math.random() - 0.5) * 40 - 5);
-                    environmentGroup.add(mesh);
-                    environmentMeshes.push(mesh);
+                    environmentGroup.add(mesh); environmentMeshes.push(mesh);
                 }
             } else if (type === 'crystals') {
                 for (let i = 0; i < 25; i++) {
-                    const geom = new THREE.OctahedronGeometry(Math.random() * 1.5 + 0.8);
-                    const mesh = new THREE.Mesh(geom, matWire);
+                    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(Math.random() * 1.5 + 0.8), matWire);
                     mesh.position.set((Math.random() - 0.5) * 30, Math.random() * 10 + 0.5, (Math.random() - 0.5) * 40 - 5);
-                    environmentGroup.add(mesh);
-                    environmentMeshes.push(mesh);
+                    environmentGroup.add(mesh); environmentMeshes.push(mesh);
                 }
             } else if (type === 'torii') {
                 for (let i = 0; i < 6; i++) {
                     const frameGroup = new THREE.Group();
-                    const pGeom = new THREE.BoxGeometry(0.4, 5, 0.4);
-                    const p1 = new THREE.Mesh(pGeom, matWire); p1.position.x = -2;
-                    const p2 = new THREE.Mesh(pGeom, matWire); p2.position.x = 2;
+                    const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.4), matWire); p1.position.x = -2;
+                    const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 0.4), matWire); p2.position.x = 2;
                     const topG = new THREE.Mesh(new THREE.BoxGeometry(5, 0.5, 0.5), matWire); topG.position.y = 2.5;
                     frameGroup.add(p1, p2, topG);
                     frameGroup.position.set(0, 2.5, -i * 8 - 8);
-                    environmentGroup.add(frameGroup);
-                    environmentMeshes.push(frameGroup);
+                    environmentGroup.add(frameGroup); environmentMeshes.push(frameGroup);
                 }
             } else {
                 for (let i = 0; i < 25; i++) {
                     const geom = type === 'spheres' ? new THREE.IcosahedronGeometry(0.8, 0) : new THREE.BoxGeometry(1, 1, 1);
                     const mesh = new THREE.Mesh(geom, matWire);
                     mesh.position.set((Math.random() - 0.5) * 30, Math.random() * 10 + 1, (Math.random() - 0.5) * 40 - 5);
-                    environmentGroup.add(mesh);
-                    environmentMeshes.push(mesh);
+                    environmentGroup.add(mesh); environmentMeshes.push(mesh);
                 }
             }
         }
 
         function createGateMesh(glowColorHex) {
             const group = new THREE.Group();
-            const archShape = new THREE.BoxGeometry(0.4, 4.5, 0.4);
-            const topArchShape = new THREE.BoxGeometry(3.2, 0.4, 0.4);
-
             const frameMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.2, metalness: 0.8 });
 
-            const leftPillar = new THREE.Mesh(archShape, frameMat);
-            leftPillar.position.set(-1.4, 2.25, 0);
-
-            const rightPillar = new THREE.Mesh(archShape, frameMat);
-            rightPillar.position.set(1.4, 2.25, 0);
-
-            const topBar = new THREE.Mesh(topArchShape, frameMat);
-            topBar.position.set(0, 4.3, 0);
-
+            const leftPillar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 0.4), frameMat); leftPillar.position.set(-1.4, 2.25, 0);
+            const rightPillar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.5, 0.4), frameMat); rightPillar.position.set(1.4, 2.25, 0);
+            const topBar = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.4, 0.4), frameMat); topBar.position.set(0, 4.3, 0);
             group.add(leftPillar, rightPillar, topBar);
 
-            const portalGeom = new THREE.PlaneGeometry(2.4, 4.1);
             const portalMat = new THREE.MeshBasicMaterial({ color: glowColorHex, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
-            const portalPlane = new THREE.Mesh(portalGeom, portalMat);
+            const portalPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 4.1), portalMat);
             portalPlane.position.set(0, 2.1, 0);
             group.add(portalPlane);
 
-            const borderGeom = new THREE.BoxGeometry(2.6, 4.3, 0.1);
-            const borderEdges = new THREE.EdgesGeometry(borderGeom);
             const borderMat = new THREE.LineBasicMaterial({ color: glowColorHex, linewidth: 2 });
-            const borderLines = new THREE.LineSegments(borderEdges, borderMat);
+            const borderLines = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2.6, 4.3, 0.1)), borderMat);
             borderLines.position.set(0, 2.15, 0);
             group.add(borderLines);
 
@@ -873,22 +965,18 @@
             return `${m}:${s}.${ms}`;
         }
 
-        // --- GATE CHOICE ACTION ---
+        // --- GATE CHOICE ACTION & CAMERA MOTIONS ---
         function selectGate(chosenColor) {
             if (isMoving) return;
             isMoving = true;
             initAudioEngine();
 
             const isCorrect = (chosenColor === correctGate);
-
-            // FAST MODE: スキップ処理
-            if (isFastMode) {
-                playSoundSFX('warp');
-                handleGateOutcome(isCorrect, chosenColor);
-                return;
-            }
-
             const targetX = chosenColor === 'blue' ? -2.5 : 2.5;
+
+            // Fast Mode Duration adjustment
+            const duration = isFastMode ? 0.05 : 0.7;
+
             let startTime = performance.now();
             const startCameraX = camera.position.x;
             const startCameraZ = camera.position.z;
@@ -897,7 +985,6 @@
 
             function animateCamera(now) {
                 const elapsed = (now - startTime) / 1000;
-                const duration = 0.7;
                 const progress = Math.min(elapsed / duration, 1);
 
                 const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
@@ -939,95 +1026,90 @@
             }
         }
 
-        // --- EXPANDED DEATH ANIMATION SYSTEM (9 VARIANTS) ---
+        // --- EXPANDED DEATH ANIMATION SYSTEM ---
         function triggerDeathAnimation(chosenColor) {
             playSoundSFX('wrong');
             const theme = STAGE_THEMES[currentStage % STAGE_THEMES.length];
             
-            // Expanded death types
-            let deathTypes = ['fall', 'fissure', 'crush', 'laser', 'freeze', 'explosion', 'spin_warp', 'glitch'];
+            // Expanded 10 Death Types
+            let deathTypes = ['fall', 'fissure', 'crush', 'laser', 'blackhole', 'explosion', 'glitch', 'dive', 'freeze'];
             if (theme.specialEffect === 'creature') {
                 deathTypes.push('eat', 'eat');
             }
 
             const deathType = deathTypes[Math.floor(Math.random() * deathTypes.length)];
+            let deathDuration = isFastMode ? 0.1 : 1.2;
+            let startTime = performance.now();
 
             if (deathType === 'fall') lastDeathCause = "底なしの崖へ落下";
             else if (deathType === 'eat') { lastDeathCause = "謎の変な奴に捕食された"; playSoundSFX('roar'); creatureGroup.visible = true; }
             else if (deathType === 'fissure') lastDeathCause = "次元の裂け目に飲まれた";
             else if (deathType === 'crush') lastDeathCause = "空間圧縮により粉砕";
             else if (deathType === 'laser') lastDeathCause = "トラップレーザーにより消滅";
-            else if (deathType === 'freeze') lastDeathCause = "絶対零度の氷結バリアに触れ凍結";
-            else if (deathType === 'explosion') lastDeathCause = "ゲート過負荷爆発に巻き込まれた";
-            else if (deathType === 'spin_warp') lastDeathCause = "位相錯乱スパイラルに呑み込まれた";
-            else if (deathType === 'glitch') lastDeathCause = "次元バグ（グリッチ）により存在消滅";
-
-            // FAST MODE: 即座にダイアログを表示
-            if (isFastMode) {
-                finishDeathProcess();
-                return;
-            }
-
-            let deathDuration = 1.2;
-            let startTime = performance.now();
+            else if (deathType === 'blackhole') lastDeathCause = "超重力ブラックホールに吸引された";
+            else if (deathType === 'explosion') lastDeathCause = "高圧エネルギーの過負荷により爆散";
+            else if (deathType === 'glitch') lastDeathCause = "現実空間のシステムエラーにより消失";
+            else if (deathType === 'dive') lastDeathCause = "音速ダイブによる地表激突";
+            else lastDeathCause = "絶対零度による瞬間凍結";
 
             function playDeathFrame(now) {
                 const elapsed = (now - startTime) / 1000;
                 const progress = Math.min(elapsed / deathDuration, 1);
 
-                if (deathType === 'fall') {
-                    camera.position.y = 1.6 - (progress * progress * 20);
-                    camera.rotation.x = -progress * 1.2;
-                } else if (deathType === 'eat') {
-                    creatureGroup.position.set(camera.position.x, 1.6, camera.position.z - (1 - progress) * 5);
-                    const scale = 1 + progress * 8;
-                    creatureGroup.scale.set(scale, scale, scale);
-                } else if (deathType === 'fissure') {
-                    gridHelper.position.x = (progress * 10) * (chosenColor === 'blue' ? -1 : 1);
-                    camera.position.y = 1.6 - progress * 10;
-                } else if (deathType === 'crush') {
-                    camera.fov = 65 + progress * 80;
-                    camera.updateProjectionMatrix();
-                    camera.rotation.z = progress * Math.PI * 2;
-                } else if (deathType === 'laser') {
-                    renderer.setClearColor(0xff0033);
-                } else if (deathType === 'freeze') {
-                    renderer.setClearColor(0x0088ff);
-                    camera.position.z = 6 + progress * 2;
-                } else if (deathType === 'explosion') {
-                    camera.position.x = (Math.random() - 0.5) * progress * 2;
-                    camera.position.y = 1.6 + (Math.random() - 0.5) * progress * 2;
-                    renderer.setClearColor((Math.floor(progress * 20) % 2 === 0) ? 0xffffff : 0xff3300);
-                } else if (deathType === 'spin_warp') {
-                    camera.rotation.z = progress * Math.PI * 6;
-                    camera.position.z = 6 + progress * 10;
-                } else if (deathType === 'glitch') {
-                    camera.position.x = (Math.random() - 0.5) * 3;
-                    camera.position.y = 1.6 + (Math.random() - 0.5) * 3;
-                    camera.fov = 30 + Math.random() * 80;
-                    camera.updateProjectionMatrix();
+                if (!isFastMode) {
+                    if (deathType === 'fall') {
+                        camera.position.y = 1.6 - (progress * progress * 20);
+                        camera.rotation.x = -progress * 1.2;
+                    } else if (deathType === 'eat') {
+                        creatureGroup.position.set(camera.position.x, 1.6, camera.position.z - (1 - progress) * 5);
+                        const scale = 1 + progress * 8;
+                        creatureGroup.scale.set(scale, scale, scale);
+                    } else if (deathType === 'fissure') {
+                        gridHelper.position.x = (progress * 10) * (chosenColor === 'blue' ? -1 : 1);
+                        camera.position.y = 1.6 - progress * 10;
+                    } else if (deathType === 'crush') {
+                        camera.fov = 65 + progress * 80;
+                        camera.updateProjectionMatrix();
+                        camera.rotation.z = progress * Math.PI * 2;
+                    } else if (deathType === 'blackhole') {
+                        camera.rotation.z = progress * Math.PI * 6;
+                        camera.position.z -= progress * 4;
+                    } else if (deathType === 'explosion') {
+                        camera.position.x += (Math.random() - 0.5) * 0.8;
+                        camera.position.y += (Math.random() - 0.5) * 0.8;
+                        renderer.setClearColor(0xffaa00);
+                    } else if (deathType === 'glitch') {
+                        camera.position.x = (Math.random() - 0.5) * 2;
+                        camera.rotation.y = (Math.random() - 0.5) * 1;
+                    } else if (deathType === 'dive') {
+                        camera.position.y = 1.6 - progress * 1.6;
+                        camera.position.z -= progress * 5;
+                        camera.rotation.x = progress * 1.5;
+                    } else if (deathType === 'freeze') {
+                        renderer.setClearColor(0x00ffff);
+                    } else {
+                        renderer.setClearColor(0xff0033);
+                    }
                 }
 
                 if (progress < 1) {
                     requestAnimationFrame(playDeathFrame);
                 } else {
-                    finishDeathProcess();
+                    renderer.setClearColor(0x000000);
+                    
+                    const nameInput = document.getElementById('player-name-input').value.trim();
+                    if (nameInput) {
+                        localStorage.setItem('probability_player_name', nameInput);
+                    }
+                    if (window.submitOnlineScore) {
+                        window.submitOnlineScore(nameInput || "名無し探索者", currentStage, elapsedPlayTime);
+                    }
+
+                    showGameEndModal(false);
                 }
             }
 
             requestAnimationFrame(playDeathFrame);
-        }
-
-        function finishDeathProcess() {
-            renderer.setClearColor(0x000000);
-            const nameInput = document.getElementById('player-name-input').value.trim();
-            if (nameInput) {
-                localStorage.setItem('probability_player_name', nameInput);
-            }
-            if (window.submitOnlineScore) {
-                window.submitOnlineScore(nameInput || "名無し探索者", currentStage, elapsedPlayTime);
-            }
-            showGameEndModal(false);
         }
 
         // --- MODAL & UI TAB HANDLERS ---
@@ -1045,6 +1127,16 @@
         const tabContentGame = document.getElementById('tab-content-game');
         const tabContentRanking = document.getElementById('tab-content-ranking');
 
+        const fastModeToggle = document.getElementById('fast-mode-toggle');
+
+        // FAST Mode Toggle Listener
+        fastModeToggle.checked = isFastMode;
+        fastModeToggle.addEventListener('change', (e) => {
+            isFastMode = e.target.checked;
+            localStorage.setItem('probability_fast_mode', isFastMode ? 'true' : 'false');
+        });
+
+        // Tab Switching
         tabGameBtn.addEventListener('click', () => {
             tabGameBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md";
             tabRankingBtn.className = "flex-1 py-2 rounded-xl font-orbitron font-bold text-xs md:text-sm transition-all text-gray-400 hover:text-white";
@@ -1071,12 +1163,13 @@
             iconFail.classList.add('hidden');
 
             document.getElementById('player-name-input').value = savedPlayerName;
+            fastModeToggle.checked = isFastMode;
 
             if (isStart) {
                 modalStats.classList.add('hidden');
                 modalTitle.innerText = "確率の迷宮";
                 modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-blue-300";
-                modalDesc.innerHTML = `1/2の選択を当て続けろ！<br>右上の <b>⚡ FAST</b> をオンにすると全演出カットで爆速連打が可能！`;
+                modalDesc.innerHTML = `1/2の選択を当て続けろ！<br>連続成功で<b>テンポUP＆トランスBGMが進化！</b><br>街・砂漠・平原・深海...未知のロケーションを駆け抜けろ！`;
                 iconStart.classList.remove('hidden');
                 modalActionBtn.innerText = "CHALLENGE START";
             } else {
@@ -1093,7 +1186,7 @@
                 modalTitle.className = "text-2xl md:text-3xl font-black font-orbitron tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-pink-300 to-white glow-red";
                 modalDesc.innerHTML = `<span class="text-red-400 font-bold">ハズレのゲートを選択しました。</span><br>スコアがオンラインランキングに保存されました！`;
                 iconFail.classList.remove('hidden');
-                modalActionBtn.innerText = "RETRY CHALLENGE [Space / Enter]";
+                modalActionBtn.innerText = "RETRY CHALLENGE";
             }
         }
 
@@ -1114,7 +1207,6 @@
 
             randomizeGate();
             updateStageVisuals(0);
-
             startPlayTimer();
 
             modalOverlay.classList.add('opacity-0', 'pointer-events-none');
@@ -1145,7 +1237,7 @@
             initAudioEngine();
             isSoundMuted = !isSoundMuted;
             document.getElementById('sound-icon-on').classList.toggle('hidden', isSoundMuted);
-            document.getElementById('sound-icon-off').classList.toggle('hidden', isSoundMuted);
+            document.getElementById('sound-icon-off').classList.toggle('hidden', !isSoundMuted);
         });
 
         window.addEventListener('resize', () => {
@@ -1190,7 +1282,6 @@
 
         window.onload = function() {
             document.getElementById('best-streak-val').innerText = `${bestStreak} 回`;
-            updateFastModeUI();
             randomizeGate();
             updateStageVisuals(0);
             showGameEndModal(true);
